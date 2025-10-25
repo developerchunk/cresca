@@ -79,7 +79,7 @@ fun CalenderScreen(
             ) {
                 Button(
                     onClick = {
-                        navController.navigate(AddTransactionScreenRoute)
+                        navController.navigate(AddTransactionScreenRoute())
                     },
                     modifier = Modifier.weight(0.5f).fillMaxHeight(),
                     colors = ButtonDefaults.buttonColors(
@@ -97,7 +97,7 @@ fun CalenderScreen(
 
                 Button(
                     onClick = {
-                        navController.navigate(AddTransactionScreenRoute)
+                        navController.navigate(AddTransactionScreenRoute())
                     },
                     modifier = Modifier.weight(0.5f).fillMaxHeight(),
                     colors = ButtonDefaults.buttonColors(

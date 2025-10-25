@@ -27,6 +27,10 @@ kotlin {
             isStatic = true
             // Add bundle ID to resolve warning
             binaryOption("bundleId", "com.developerstring.nexpay")
+
+            // Link CoreNFC framework for iOS NFC functionality
+            linkerOpts += "-framework"
+            linkerOpts += "CoreNFC"
         }
     }
 

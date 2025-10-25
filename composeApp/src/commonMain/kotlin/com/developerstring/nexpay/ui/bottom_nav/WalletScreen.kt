@@ -64,8 +64,9 @@ fun WalletScreen(
         )
     }
 
-    Box(
+    Column(
         modifier = Modifier
+            .verticalScroll(rememberScrollState())
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
@@ -79,7 +80,7 @@ fun WalletScreen(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(20.dp)
         ) {
             Spacer(modifier = Modifier.height(40.dp))
@@ -349,8 +350,6 @@ fun WalletScreen(
         // Get Started Section - Fixed at bottom with white background
         Column(
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                 .background(Color.White)

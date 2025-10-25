@@ -62,8 +62,20 @@ class SharedViewModel (
     private val _selectedBundle = MutableStateFlow<CryptoBundle?>(null)
     val selectedBundle: StateFlow<CryptoBundle?> = _selectedBundle.asStateFlow()
 
+    // NFC Receiver Wallet Address State
+    private val _receiverWalletAddress = MutableStateFlow("")
+    val receiverWalletAddress: StateFlow<String> = _receiverWalletAddress.asStateFlow()
+
     fun setSelectedBundle(bundle: CryptoBundle) {
         _selectedBundle.value = bundle
+    }
+
+    fun setReceiverWalletAddress(address: String) {
+        _receiverWalletAddress.value = address
+    }
+
+    fun clearReceiverWalletAddress() {
+        _receiverWalletAddress.value = ""
     }
 
     init {

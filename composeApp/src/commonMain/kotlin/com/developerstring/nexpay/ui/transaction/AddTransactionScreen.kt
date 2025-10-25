@@ -42,16 +42,17 @@ import org.jetbrains.compose.resources.vectorResource
 import kotlin.time.ExperimentalTime
 
 @Serializable
-data object AddTransactionScreenRoute
+data class AddTransactionScreenRoute(val receiverAddress: String? = null)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
 fun AddTransactionScreen(
     sharedViewModel: SharedViewModel,
     navController: NavController,
-    aptosViewModel: AptosViewModel
+    aptosViewModel: AptosViewModel,
+    initialReceiverAddress: String? = null
 ) {
-    var receiverAddress by remember { mutableStateOf("") }
+    var receiverAddress by remember { mutableStateOf(initialReceiverAddress ?: "") }
     var amount by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var isScheduled by remember { mutableStateOf(false) }
@@ -65,6 +66,14 @@ fun AddTransactionScreen(
     // Get current wallet address from AptosViewModel
     val aptosUiState by aptosViewModel.uiState.collectAsStateWithLifecycle()
     val currentWalletAddress = aptosUiState.walletAddress ?: ""
+
+    // Save receiver address from NFC to SharedViewModel
+    LaunchedEffect(initialReceiverAddress) {
+        initialReceiverAddress?.let { address ->
+            // Save the NFC received address to SharedViewModel
+            sharedViewModel.setReceiverWalletAddress(address)
+        }
+    }
 
     Box(
         modifier = Modifier

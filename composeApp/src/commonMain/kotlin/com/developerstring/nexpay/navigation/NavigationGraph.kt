@@ -24,6 +24,8 @@ import com.developerstring.nexpay.ui.screens.applock.PinSetupScreen
 import com.developerstring.nexpay.ui.screens.applock.PinSetupScreenRoute
 import com.developerstring.nexpay.ui.transaction.AddTransactionScreen
 import com.developerstring.nexpay.ui.transaction.AddTransactionScreenRoute
+import com.developerstring.nexpay.ui.nfc.NFCScreen
+import com.developerstring.nexpay.ui.nfc.NFCScreenRoute
 import com.developerstring.nexpay.ui.screens.BundleDetailScreen
 import com.developerstring.nexpay.ui.screens.BundleDetailScreenRoute
 import com.developerstring.nexpay.viewmodel.AptosViewModel
@@ -45,7 +47,31 @@ fun NavGraphBuilder.navGraph(navController: NavHostController, sharedViewModel: 
 
         composable<WalletScreenRoute> { WalletScreen(sharedViewModel = sharedViewModel, navController = navController, aptosViewModel = aptosViewModel) }
 
-        composable<AddTransactionScreenRoute> { AddTransactionScreen(sharedViewModel = sharedViewModel, navController = navController, aptosViewModel = aptosViewModel) }
+        composable<AddTransactionScreenRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<AddTransactionScreenRoute>()
+            AddTransactionScreen(
+                sharedViewModel = sharedViewModel,
+                navController = navController,
+                aptosViewModel = aptosViewModel,
+                initialReceiverAddress = route.receiverAddress
+            )
+        }
+
+        composable<NFCScreenRoute> {
+            NFCScreen(
+                onNavigateToSend = { address ->
+                    // Navigate to send screen with address
+                    navController.navigate(AddTransactionScreenRoute(receiverAddress = address))
+                },
+                onNavigateToReceive = {
+                    // Navigate to receive screen
+                },
+                onNavigateToAddTransaction = { receiverAddress ->
+                    // Navigate to AddTransactionScreen with receiver address
+                    navController.navigate(AddTransactionScreenRoute(receiverAddress = receiverAddress))
+                }
+            )
+        }
 
         composable<ExploreScreenRoute> { ExploreScreen(sharedViewModel = sharedViewModel, navController = navController) }
 

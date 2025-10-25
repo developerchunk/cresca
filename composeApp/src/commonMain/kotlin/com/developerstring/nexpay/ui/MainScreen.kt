@@ -24,7 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.QrCode
+
 import androidx.compose.material.icons.rounded.TapAndPlay
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -60,6 +61,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.developerstring.nexpay.navigation.bottom_nav.BottomNavGraph
 import com.developerstring.nexpay.navigation.bottom_nav.BottomNavRoute
+import com.developerstring.nexpay.ui.nfc.NFCScreenRoute
 
 import com.developerstring.nexpay.viewmodel.AptosViewModel
 import com.developerstring.nexpay.viewmodel.SharedViewModel
@@ -90,7 +92,8 @@ fun MainScreen(
                     scope.launch {
                         bottomSheetScaffoldState.bottomSheetState.partialExpand()
                     }
-                }
+                },
+                navController = nav
             )
         },
         sheetPeekHeight = 0.dp,
@@ -267,7 +270,8 @@ fun CleanNavItem(
 
 @Composable
 fun SendReceiveBottomSheet(
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    navController: NavController
 ) {
     Column(
         modifier = Modifier
@@ -428,13 +432,13 @@ fun SendReceiveBottomSheet(
             }
         }
 
-        // QR Code Scan Option
+        // NFC Tap to Pay Option
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
                 .clickable {
-                    // TODO: Navigate to QR Scanner
+                    navController?.navigate(NFCScreenRoute)
                     onClose()
                 },
             colors = androidx.compose.material3.CardDefaults.cardColors(

@@ -7,7 +7,7 @@ fun initKoin(appDeclaration: KoinAppDeclaration = {}) {
     startKoin {
         appDeclaration()
         modules(
-            commonModule() + platformModule()
+            commonModule() + platformModule() + nfcModule
         )
     }
 }

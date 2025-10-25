@@ -4,5 +4,14 @@
     <dict>
         <key>CADisableMinimumFrameDurationOnPhone</key>
         <true/>
+
+        <!-- NFC Configuration -->
+        <key>NFCReaderUsageDescription</key>
+        <string>This app uses NFC to read wallet addresses from other devices for secure transactions.</string>
+
+        <key>com.apple.developer.nfc.readersession.formats</key>
+        <array>
+            <string>NDEF</string>
+        </array>
     </dict>
 </plist>

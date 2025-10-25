@@ -1,3 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">NexPay</string>
+    <string name="nfc_wallet_sharing_service_description">NFC service for sharing wallet addresses securely between devices</string>
+    <string name="nfc_wallet_sharing_aid_description">Wallet address sharing via NFC</string>
 </resources>
+

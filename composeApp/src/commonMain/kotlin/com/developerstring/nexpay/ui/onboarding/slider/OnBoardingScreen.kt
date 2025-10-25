@@ -212,7 +212,7 @@ fun OnBoardingScreen(
                                 pagerState.animateScrollToPage(pagerState.currentPage + 1)
                             } else {
                                 sharedViewModel.setOnboardingDone(true)
-                                navController.navigate(CreateProfileScreenRoute) {
+                                navController.navigate(PinSetupScreenRoute) {
                                     popUpTo(OnBoardingScreenRoute) { inclusive = true }
                                 }
                             }
