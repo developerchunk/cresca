@@ -1,5 +1,9 @@
 package com.developerstring.nexpay.viewmodel
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.developerstring.nexpay.authentication.BiometricAuthResult
@@ -15,6 +19,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import com.developerstring.nexpay.data.currencies.CryptoCurrency
+import com.developerstring.nexpay.data.currencies.CryptoCurrencyRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +35,12 @@ import xyz.mcxross.kaptos.model.Network
 import kotlin.toString
 import xyz.mcxross.kaptos.account.Account as AptosAccount
 import com.developerstring.nexpay.data.model.CryptoBundle
+import com.developerstring.nexpay.utils.error_handlers.NetworkError
+import com.developerstring.nexpay.utils.error_handlers.onError
+import com.developerstring.nexpay.utils.error_handlers.onSuccess
+import com.kmpalette.PaletteState
+import com.kmpalette.color
+import kotlin.onSuccess
 
 data class AppLockState(
     val isAppLockEnabled: Boolean = false,
@@ -45,7 +57,8 @@ class SharedViewModel (
     private val transactionDao: TransactionDao,
     private val dataStore: DataStore<Preferences>,
     private val appLockRepository: AppLockRepository,
-    private val biometricAuthenticator: BiometricAuthenticator
+    private val biometricAuthenticator: BiometricAuthenticator,
+    private val repository: CryptoCurrencyRepository
 ) : ViewModel() {
 
     // App Lock State
@@ -131,7 +144,7 @@ class SharedViewModel (
         }
     }
 
-    fun getUserName(): Flow<String?> = dataStore.data.map { prefs -> prefs[USER_NAME_KEY] }
+    fun getUserName(): Flow<Int?> = dataStore.data.map { prefs -> prefs[USER_NAME_KEY]?.toInt() }
 
     fun setCountryName(name: String) {
         viewModelScope.launch {
@@ -330,19 +343,22 @@ class SharedViewModel (
         gasPrice: String = "",
         gasFee: String = "",
         notes: String = "",
-        accountId: Int
+        accountId: Int,
+        status: TransactionStatus = TransactionStatus.PENDING,
+        executedAt: Long? = null,
     ) {
         val transaction = Transaction(
             fromWalletAddress = fromWalletAddress,
             toWalletAddress = toWalletAddress,
             amount = amount,
             cryptoType = cryptoType,
-            status = TransactionStatus.PENDING,
+            status = status,
             gasPrice = gasPrice,
             gasFee = gasFee,
             notes = notes,
             isScheduled = false,
-            accountId = accountId
+            accountId = accountId,
+            executedAt = executedAt,
         )
 
         viewModelScope.launch {
@@ -362,7 +378,8 @@ class SharedViewModel (
         gasPrice: String = "",
         gasFee: String = "",
         notes: String = "",
-        accountId: Int
+        accountId: Int,
+        executedAt: Long?,
     ) {
         val transaction = Transaction(
             fromWalletAddress = fromWalletAddress,
@@ -375,7 +392,8 @@ class SharedViewModel (
             gasFee = gasFee,
             notes = notes,
             isScheduled = true,
-            accountId = accountId
+            accountId = accountId,
+            executedAt = executedAt
         )
 
         viewModelScope.launch {
@@ -610,4 +628,81 @@ class SharedViewModel (
 //            }
 //        }
 //    }
+
+    /**
+     * initial Image Palette State
+     */
+    private val _imagePalette = MutableStateFlow<PaletteState<ImageBitmap>?>(null)
+    val imagePalette: StateFlow<PaletteState<ImageBitmap>?> = _imagePalette.asStateFlow()
+
+    var darkVibrantColor: MutableState<Color> = mutableStateOf(Color.Black)
+    var vibrantColor: MutableState<Color> = mutableStateOf(Color.Black)
+    var lightVibrantColor: MutableState<Color> = mutableStateOf(Color.White)
+
+    fun setImagePalette(paletteState: PaletteState<ImageBitmap>) {
+        _imagePalette.value = paletteState
+        darkVibrantColor.value = paletteState.palette?.darkVibrantSwatch?.color ?: Color.Black
+        vibrantColor.value = paletteState.palette?.vibrantSwatch?.color ?: Color.Black
+        lightVibrantColor.value = paletteState.palette?.lightVibrantSwatch?.color ?: Color.White
+    }
+
+
+    private val _cryptoCurrencyList = MutableStateFlow<List<CryptoCurrency>>(emptyList())
+    val cryptoCurrencyList: StateFlow<List<CryptoCurrency>> = _cryptoCurrencyList
+
+    private val _networkError = MutableStateFlow<NetworkError?>(null)
+    val networkError: StateFlow<NetworkError?> = _networkError
+
+    val loadingCryptoCurrencies = MutableStateFlow(false)
+
+    fun getCryptoCurrencies() {
+        viewModelScope.launch {
+            loadingCryptoCurrencies.emit(true)
+            try {
+                repository.getCryptoCurrencies()
+                    .onSuccess {
+                        _cryptoCurrencyList.emit(it)
+                        loadingCryptoCurrencies.emit(false)
+                    }.onError {
+                        _networkError.emit(it)
+                        loadingCryptoCurrencies.emit(false)
+                    }
+            } catch (e: Exception) {
+                _networkError.emit(NetworkError.UNKNOWN)
+                loadingCryptoCurrencies.emit(false)
+            }
+        }
+    }
+
+    private val _currencyMarketData = MutableStateFlow<List<Pair<Long, Double>>>(emptyList())
+    val currencyMarketData: StateFlow<List<Pair<Long, Double>>> = _currencyMarketData
+
+    fun getMarketChart(cryptoId: String, currency: String = "usd", days: Int = 1) {
+
+        emptyMarketChart()
+
+        viewModelScope.launch {
+            try {
+                repository.getMarketChart(cryptoId, currency, days)
+                    .onSuccess {
+                        _currencyMarketData.emit(it)
+                    }.onError {
+                        _networkError.emit(it)
+                    }
+            } catch (e: Exception) {
+                _networkError.emit(NetworkError.UNKNOWN)
+            }
+
+        }
+
+    }
+
+    fun emptyMarketChart() {
+        viewModelScope.launch {
+            _currencyMarketData.emit(emptyList())
+        }
+    }
+
+    var currencyCrypto: MutableState<CryptoCurrency?> = mutableStateOf(null)
+
 }

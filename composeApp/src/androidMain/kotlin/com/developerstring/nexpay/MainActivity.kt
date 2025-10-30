@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.developerstring.nexpay.nfc.NFCManager
 import com.developerstring.nexpay.nfc.PlatformNFCManager
+import com.developerstring.nexpay.utils.initializeUtils
 import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
@@ -22,6 +23,9 @@ class MainActivity : ComponentActivity() {
 
         // Initialize NFC Manager with this activity context
         (nfcManager as? PlatformNFCManager)?.initialize(this)
+
+        // Initialize clipboard utils
+        initializeUtils(this)
 
         setContent {
             App()

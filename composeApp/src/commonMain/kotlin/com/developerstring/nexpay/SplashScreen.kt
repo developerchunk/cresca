@@ -23,16 +23,27 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.developerstring.nexpay.ui.MainScreenRoute
 import com.developerstring.nexpay.ui.onboarding.create_profile.CreateProfileScreenRoute
-import com.developerstring.nexpay.ui.onboarding.slider.OnBoardingScreenRoute
 import com.developerstring.nexpay.ui.screens.applock.AppLockScreenRoute
 import com.developerstring.nexpay.ui.components.StarFieldBackground
 import com.developerstring.nexpay.ui.components.StarFieldConfig
+import com.developerstring.nexpay.ui.onboarding.create_profile.ColorSchema
 import com.developerstring.nexpay.ui.screens.applock.AppLockSettingsScreenRoute
 import com.developerstring.nexpay.ui.screens.applock.PinSetupScreenRoute
 import com.developerstring.nexpay.viewmodel.SharedViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import nexpay.composeapp.generated.resources.Res
+import nexpay.composeapp.generated.resources.avt_1
+import nexpay.composeapp.generated.resources.avt_2
+import nexpay.composeapp.generated.resources.avt_3
+import nexpay.composeapp.generated.resources.avt_4
+import nexpay.composeapp.generated.resources.avt_5
+import nexpay.composeapp.generated.resources.avt_6
+import nexpay.composeapp.generated.resources.avt_7
+import nexpay.composeapp.generated.resources.avt_8
+import nexpay.composeapp.generated.resources.avt_9
+import org.jetbrains.compose.resources.imageResource
 import kotlin.math.*
 import kotlin.random.Random
 
@@ -46,17 +57,14 @@ fun SplashScreen(
 ) {
 
     var onComplete by remember { mutableStateOf(false) }
+    var selectedImageIndex by remember { mutableIntStateOf(0) }
 
     var isProfileCreated by remember { mutableStateOf(false) }
-    var isOnBoardingDone by remember { mutableStateOf(false) }
     var isAppLockEnabled by remember { mutableStateOf(false) }
     var isAppLocked by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        // Launch separate coroutines for each flow collection
-        launch {
-            sharedViewModel.isOnboardingDone().collect { isOnBoardingDone = it }
-        }
+        sharedViewModel.getCryptoCurrencies()
         launch {
             sharedViewModel.appLockState.collect { appLockState ->
                 isAppLockEnabled = appLockState.isAppLockEnabled
@@ -65,6 +73,12 @@ fun SplashScreen(
         launch {
             sharedViewModel.isAppLocked.collect { locked ->
                 isAppLocked = locked
+            }
+        }
+        launch {
+            sharedViewModel.getUserName().collect { index ->
+                selectedImageIndex = index ?: 0
+                isProfileCreated = index != null
             }
         }
     }
@@ -100,9 +114,31 @@ fun SplashScreen(
     }
 
     if (onComplete) {
+
+        if (isProfileCreated) {
+            val listOfImages = listOf(
+                imageResource(Res.drawable.avt_1),
+                imageResource(Res.drawable.avt_2),
+                imageResource(Res.drawable.avt_3),
+                imageResource(Res.drawable.avt_4),
+                imageResource(Res.drawable.avt_5),
+                imageResource(Res.drawable.avt_6),
+                imageResource(Res.drawable.avt_7),
+                imageResource(Res.drawable.avt_8),
+                imageResource(Res.drawable.avt_9),
+            )
+
+            ColorSchema(
+                imageBitmap = listOfImages[selectedImageIndex],
+                imageColors = { paletteState ->
+                    sharedViewModel.setImagePalette(paletteState)
+                }
+            )
+        }
+
         navController.navigate(
             when {
-                !isOnBoardingDone -> OnBoardingScreenRoute
+                !isProfileCreated -> CreateProfileScreenRoute
                 !isAppLockEnabled -> PinSetupScreenRoute
                 isAppLockEnabled && isAppLocked -> AppLockScreenRoute
                 else -> AppLockScreenRoute

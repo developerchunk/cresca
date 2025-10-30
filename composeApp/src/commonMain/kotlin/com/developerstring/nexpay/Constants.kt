@@ -1,6 +1,16 @@
 package com.developerstring.nexpay
 
 import androidx.compose.ui.graphics.Color
+import nexpay.composeapp.generated.resources.Res
+import nexpay.composeapp.generated.resources.avt_1
+import nexpay.composeapp.generated.resources.avt_2
+import nexpay.composeapp.generated.resources.avt_3
+import nexpay.composeapp.generated.resources.avt_4
+import nexpay.composeapp.generated.resources.avt_5
+import nexpay.composeapp.generated.resources.avt_6
+import nexpay.composeapp.generated.resources.avt_7
+import nexpay.composeapp.generated.resources.avt_8
+import nexpay.composeapp.generated.resources.avt_9
 
 data class Country(
     val name: String,
@@ -14,6 +24,17 @@ data object Constants {
     const val DATABASE_NAME = "app_database.db"
     const val DATABASE_VERSION = 1
 
+    val listOfImages = listOf(
+        Res.drawable.avt_1,
+        Res.drawable.avt_2,
+        Res.drawable.avt_3,
+        Res.drawable.avt_4,
+        Res.drawable.avt_5,
+        Res.drawable.avt_6,
+        Res.drawable.avt_7,
+        Res.drawable.avt_8,
+        Res.drawable.avt_9,
+    )
 
     val CountriesWithCoordinates = listOf(
         // North America (4)

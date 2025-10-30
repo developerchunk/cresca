@@ -6,6 +6,8 @@ import com.developerstring.nexpay.ui.bottom_nav.ExploreScreenRoute
 import com.developerstring.nexpay.ui.bottom_nav.HomeScreenRoute
 import com.developerstring.nexpay.ui.bottom_nav.ProfileScreenRoute
 import com.developerstring.nexpay.ui.bottom_nav.WalletScreenRoute
+import com.developerstring.nexpay.ui.transaction.AddTransactionScreenRoute
+import com.developerstring.nexpay.ui.transaction.SwapScreenRoute
 import nexpay.composeapp.generated.resources.Res
 import nexpay.composeapp.generated.resources.rounded_account
 import nexpay.composeapp.generated.resources.rounded_explore_toggle
@@ -48,8 +50,8 @@ sealed class BottomNavRoute(
     )
 
     object Send : BottomNavRoute(
-        route = SendReceiveScreenRoute.toString(),
-        title = "S/R",
+        route = SwapScreenRoute.toString(),
+        title = "Swap",
         icon = Res.drawable.rounded_send_money,
     )
 }

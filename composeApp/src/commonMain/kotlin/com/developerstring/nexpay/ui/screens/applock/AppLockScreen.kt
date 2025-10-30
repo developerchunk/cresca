@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,16 +29,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.developerstring.nexpay.Constants
 import com.developerstring.nexpay.ui.MainScreenRoute
+import com.developerstring.nexpay.ui.onboarding.create_profile.CreateProfileScreenRoute
 import com.developerstring.nexpay.ui.theme.AppColors
 import com.developerstring.nexpay.viewmodel.SharedViewModel
+import com.kmpalette.color
+import com.kmpalette.onColor
 import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.imageResource
 
 @Serializable
 data object AppLockScreenRoute
@@ -76,6 +83,9 @@ fun AppLockScreen(
         }
     }
 
+    val imagePalette by sharedViewModel.imagePalette.collectAsState()
+    val imageIndex by sharedViewModel.getUserName().collectAsState(initial = 0)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -91,50 +101,34 @@ fun AppLockScreen(
         ) {
             Spacer(modifier = Modifier.height(60.dp))
 
-            // Clean logo/brand section
-            Card(
-                modifier = Modifier
-                    .size(80.dp)
-                    .scale(logoScale),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.Transparent
-                ),
-                shape = CircleShape,
-                border = BorderStroke(2.dp, Color.Black.copy(alpha = 0.1f))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
             ) {
-                Box(
+                Image(
+                    bitmap = imageResource(Constants.listOfImages[imageIndex ?: 0]),
+                    contentDescription = "Avatar Image",
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(
-                                    Color.Black.copy(alpha = 0.05f),
-                                    Color.Transparent
-                                )
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = "NexPay",
-                        modifier = Modifier.size(32.dp),
-                        tint = Color.Black.copy(alpha = 0.8f)
-                    )
-                }
+                        .size(160.dp)
+                        .clip(CircleShape)
+                        .clickable {
+                            navController.navigate(CreateProfileScreenRoute)
+                        },
+                    contentScale = ContentScale.Crop
+                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
             // Brand name with clean typography
             Text(
-                text = "NexPay",
+                text = "Cresca",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontSize = 32.sp,
                     letterSpacing = 1.sp
                 ),
-                fontWeight = FontWeight.Light,
-                color = Color.Black
+                fontWeight = FontWeight.Medium,
+                color = imagePalette?.palette?.darkVibrantSwatch?.color ?: Color.Black
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -142,7 +136,7 @@ fun AppLockScreen(
             Text(
                 text = "Secure Access",
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.Black.copy(alpha = 0.6f),
+                color = imagePalette?.palette?.darkVibrantSwatch?.color ?: Color.Black,
                 fontWeight = FontWeight.Normal
             )
 
@@ -151,7 +145,8 @@ fun AppLockScreen(
             // Clean PIN dots indicator
             ModernPinDotsIndicator(
                 pinLength = pinInput.length,
-                isError = !appLockState.isPinValid
+                isError = !appLockState.isPinValid,
+                color = imagePalette?.palette?.darkVibrantSwatch?.color ?: Color.Black
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -183,7 +178,9 @@ fun AppLockScreen(
                 onBackspaceClick = {
                     sharedViewModel.removePinDigit()
                 },
-                enabled = !appLockState.isAuthenticating
+                enabled = !appLockState.isAuthenticating,
+                colorLight = imagePalette?.palette?.lightVibrantSwatch?.color ?: Color.White,
+                colorDark = imagePalette?.palette?.darkVibrantSwatch?.color ?: Color.Black
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -203,7 +200,8 @@ fun AppLockScreen(
 @Composable
 fun ModernPinDotsIndicator(
     pinLength: Int,
-    isError: Boolean = false
+    isError: Boolean = false,
+    color: Color
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -225,13 +223,13 @@ fun ModernPinDotsIndicator(
                     .clip(CircleShape)
                     .border(
                         width = 1.dp,
-                        color = Color.Black.copy(alpha = 0.3f),
+                        color = color.copy(0.4f),
                         shape = CircleShape
                     )
                     .background(
                         color = when {
                             isError -> Color(0xFFE53E3E)
-                            index < pinLength -> Color.Black
+                            index < pinLength -> color
                             else -> Color.Transparent
                         },
                         shape = CircleShape
@@ -363,7 +361,9 @@ fun ModernLoadingOverlay() {
 fun ModernPinKeypad(
     onNumberClick: (String) -> Unit,
     onBackspaceClick: () -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    colorDark: Color,
+    colorLight: Color
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -373,9 +373,9 @@ fun ModernPinKeypad(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            ModernKeypadButton("1", onNumberClick, enabled)
-            ModernKeypadButton("2", onNumberClick, enabled)
-            ModernKeypadButton("3", onNumberClick, enabled)
+            ModernKeypadButton("1", onNumberClick, enabled, colorDark = colorDark, colorLight = colorLight)
+            ModernKeypadButton("2", onNumberClick, enabled, colorDark = colorDark, colorLight = colorLight)
+            ModernKeypadButton("3", onNumberClick, enabled, colorDark = colorDark, colorLight = colorLight)
         }
 
         // Row 2: 4, 5, 6
@@ -383,9 +383,9 @@ fun ModernPinKeypad(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            ModernKeypadButton("4", onNumberClick, enabled)
-            ModernKeypadButton("5", onNumberClick, enabled)
-            ModernKeypadButton("6", onNumberClick, enabled)
+            ModernKeypadButton("4", onNumberClick, enabled, colorDark = colorDark, colorLight = colorLight)
+            ModernKeypadButton("5", onNumberClick, enabled, colorDark = colorDark, colorLight = colorLight)
+            ModernKeypadButton("6", onNumberClick, enabled, colorDark = colorDark, colorLight = colorLight)
         }
 
         // Row 3: 7, 8, 9
@@ -393,9 +393,9 @@ fun ModernPinKeypad(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            ModernKeypadButton("7", onNumberClick, enabled)
-            ModernKeypadButton("8", onNumberClick, enabled)
-            ModernKeypadButton("9", onNumberClick, enabled)
+            ModernKeypadButton("7", onNumberClick, enabled, colorDark = colorDark, colorLight = colorLight)
+            ModernKeypadButton("8", onNumberClick, enabled, colorDark = colorDark, colorLight = colorLight)
+            ModernKeypadButton("9", onNumberClick, enabled, colorDark = colorDark, colorLight = colorLight)
         }
 
         // Row 4: Empty, 0, Backspace
@@ -405,7 +405,7 @@ fun ModernPinKeypad(
         ) {
             Spacer(modifier = Modifier.size(64.dp))
 
-            ModernKeypadButton("0", onNumberClick, enabled)
+            ModernKeypadButton("0", onNumberClick, enabled, colorDark = colorDark, colorLight = colorLight)
 
             ModernBackspaceButton(onBackspaceClick, enabled)
         }
@@ -416,7 +416,9 @@ fun ModernPinKeypad(
 fun ModernKeypadButton(
     text: String,
     onNumberClick: (String) -> Unit,
-    enabled: Boolean
+    enabled: Boolean,
+    colorLight: Color,
+    colorDark: Color
 ) {
     val scale by animateFloatAsState(
         targetValue = 1f,
@@ -435,13 +437,13 @@ fun ModernKeypadButton(
             .scale(buttonScale)
             .clip(CircleShape)
             .background(
-                if (enabled) Color.White
-                else Color.White.copy(alpha = 0.5f)
+                if (enabled) colorLight.copy(alpha = 0.1f)
+                else colorLight.copy(alpha = 0.5f)
             )
             .border(
                 width = 1.dp,
-                color = if (enabled) Color.Black.copy(alpha = 0.2f)
-                       else Color.Black.copy(alpha = 0.1f),
+                color = if (enabled) colorDark.copy(alpha = 0.2f)
+                       else colorDark.copy(alpha = 0.1f),
                 shape = CircleShape
             )
             .clickable(enabled = enabled) {
@@ -454,7 +456,7 @@ fun ModernKeypadButton(
             text = text,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Normal,
-            color = if (enabled) Color.Black else Color.Black.copy(alpha = 0.3f)
+            color = if (enabled) colorDark else colorDark.copy(alpha = 0.3f)
         )
     }
 

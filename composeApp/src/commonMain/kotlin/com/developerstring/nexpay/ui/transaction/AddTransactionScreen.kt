@@ -1,25 +1,21 @@
 package com.developerstring.nexpay.ui.transaction
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Money
-import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -28,17 +24,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.developerstring.nexpay.ui.components.AnimatedGlowButton
-import com.developerstring.nexpay.ui.theme.AppColors
+import com.developerstring.nexpay.data.room_db.model.TransactionStatus
 import com.developerstring.nexpay.viewmodel.AptosViewModel
 import com.developerstring.nexpay.viewmodel.SharedViewModel
 import kotlinx.datetime.*
-import kotlinx.datetime.format.DateTimeComponents
 import kotlinx.serialization.Serializable
 import nexpay.composeapp.generated.resources.Res
 import nexpay.composeapp.generated.resources.rounded_wallet
-import org.jetbrains.compose.resources.imageResource
 import org.jetbrains.compose.resources.vectorResource
+import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 @Serializable
@@ -66,6 +60,11 @@ fun AddTransactionScreen(
     // Get current wallet address from AptosViewModel
     val aptosUiState by aptosViewModel.uiState.collectAsStateWithLifecycle()
     val currentWalletAddress = aptosUiState.walletAddress ?: ""
+
+    // SharedViewModel color theme
+    val lightVibrantColor by sharedViewModel.lightVibrantColor
+    val darkVibrantColor by sharedViewModel.darkVibrantColor
+    val vibrantColor by sharedViewModel.vibrantColor
 
     // Save receiver address from NFC to SharedViewModel
     LaunchedEffect(initialReceiverAddress) {
@@ -99,12 +98,12 @@ fun AddTransactionScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color.Black.copy(alpha = 0.05f))
+                            .background(lightVibrantColor.copy(alpha = 0.15f))
                     ) {
                         Icon(
-                            Icons.Rounded.ArrowBack,
+                            Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.Black,
+                            tint = darkVibrantColor,
                             modifier = Modifier.size(20.dp).clickable(
                                 onClick = {
                                     navController.navigateUp()
@@ -117,7 +116,7 @@ fun AddTransactionScreen(
                         text = "New Transaction",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.Black
+                        color = darkVibrantColor
                     )
 
                     Spacer(modifier = Modifier.width(40.dp))
@@ -128,6 +127,7 @@ fun AddTransactionScreen(
                 // From Wallet (Read-only)
                 CleanInputCard(
                     title = "From",
+                    titleColor = darkVibrantColor,
                     content = {
                         OutlinedTextField(
                             value = if (currentWalletAddress.length > 20) {
@@ -136,20 +136,20 @@ fun AddTransactionScreen(
                             onValueChange = { },
                             enabled = false,
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Your wallet address", color = Color.Gray) },
+                            placeholder = { Text("Your wallet address", color = darkVibrantColor.copy(alpha = 0.5f)) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = Color.Black.copy(alpha = 0.7f),
-                                disabledBorderColor = Color.Black.copy(alpha = 0.1f),
-                                disabledPlaceholderColor = Color.Gray,
-                                focusedBorderColor = Color.Black,
-                                unfocusedBorderColor = Color.Black.copy(alpha = 0.2f)
+                                disabledTextColor = darkVibrantColor.copy(alpha = 0.7f),
+                                disabledBorderColor = lightVibrantColor.copy(alpha = 0.3f),
+                                disabledPlaceholderColor = darkVibrantColor.copy(alpha = 0.5f),
+                                focusedBorderColor = vibrantColor,
+                                unfocusedBorderColor = lightVibrantColor.copy(alpha = 0.5f)
                             ),
                             shape = RoundedCornerShape(16.dp),
                             leadingIcon = {
                                 Icon(
                                     imageVector = vectorResource(Res.drawable.rounded_wallet),
                                     contentDescription = null,
-                                    tint = Color.Black.copy(alpha = 0.6f),
+                                    tint = darkVibrantColor.copy(alpha = 0.6f),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -162,25 +162,26 @@ fun AddTransactionScreen(
                 // To Wallet
                 CleanInputCard(
                     title = "To",
+                    titleColor = darkVibrantColor,
                     content = {
                         OutlinedTextField(
                             value = receiverAddress,
                             onValueChange = { receiverAddress = it },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Enter recipient address", color = Color.Gray) },
+                            placeholder = { Text("Enter recipient address", color = darkVibrantColor.copy(alpha = 0.5f)) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.Black,
-                                unfocusedTextColor = Color.Black,
-                                focusedBorderColor = Color.Black,
-                                unfocusedBorderColor = Color.Black.copy(alpha = 0.2f),
-                                cursorColor = Color.Black
+                                focusedTextColor = darkVibrantColor,
+                                unfocusedTextColor = darkVibrantColor,
+                                focusedBorderColor = vibrantColor,
+                                unfocusedBorderColor = lightVibrantColor.copy(alpha = 0.5f),
+                                cursorColor = vibrantColor
                             ),
                             shape = RoundedCornerShape(16.dp),
                             leadingIcon = {
                                 Icon(
-                                    Icons.Rounded.Send,
+                                    Icons.AutoMirrored.Rounded.Send,
                                     contentDescription = null,
-                                    tint = Color.Black.copy(alpha = 0.6f),
+                                    tint = darkVibrantColor.copy(alpha = 0.6f),
                                     modifier = Modifier.size(20.dp)
                                 )
                             },
@@ -190,12 +191,12 @@ fun AddTransactionScreen(
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.Black.copy(alpha = 0.05f))
+                                        .background(lightVibrantColor.copy(alpha = 0.2f))
                                 ) {
                                     Icon(
                                         Icons.Default.QrCode,
                                         contentDescription = "Scan QR",
-                                        tint = Color.Black,
+                                        tint = darkVibrantColor,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -209,6 +210,7 @@ fun AddTransactionScreen(
                 // Amount and Crypto Type
                 CleanInputCard(
                     title = "Amount",
+                    titleColor = darkVibrantColor,
                     content = {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -219,21 +221,21 @@ fun AddTransactionScreen(
                                 value = amount,
                                 onValueChange = { amount = it },
                                 modifier = Modifier.weight(1f),
-                                placeholder = { Text("0.00", color = Color.Gray) },
+                                placeholder = { Text("0.00", color = darkVibrantColor.copy(alpha = 0.5f)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color.Black,
-                                    unfocusedTextColor = Color.Black,
-                                    focusedBorderColor = Color.Black,
-                                    unfocusedBorderColor = Color.Black.copy(alpha = 0.2f),
-                                    cursorColor = Color.Black
+                                    focusedTextColor = darkVibrantColor,
+                                    unfocusedTextColor = darkVibrantColor,
+                                    focusedBorderColor = vibrantColor,
+                                    unfocusedBorderColor = lightVibrantColor.copy(alpha = 0.5f),
+                                    cursorColor = vibrantColor
                                 ),
                                 shape = RoundedCornerShape(16.dp),
                                 leadingIcon = {
                                     Icon(
                                         Icons.Rounded.Money,
                                         contentDescription = null,
-                                        tint = Color.Black.copy(alpha = 0.6f),
+                                        tint = darkVibrantColor.copy(alpha = 0.6f),
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -244,7 +246,7 @@ fun AddTransactionScreen(
                                 modifier = Modifier
                                     .height(48.dp)
                                     .clip(RoundedCornerShape(28.dp))
-                                    .background(Color.Black)
+                                    .background(darkVibrantColor)
                                     .padding(horizontal = 20.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -264,6 +266,7 @@ fun AddTransactionScreen(
                 // Schedule Toggle
                 CleanInputCard(
                     title = "Schedule",
+                    titleColor = darkVibrantColor,
                     content = {
                         Column(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -275,7 +278,7 @@ fun AddTransactionScreen(
                             ) {
                                 Text(
                                     text = "Schedule for later",
-                                    color = Color.Black,
+                                    color = darkVibrantColor,
                                     fontSize = 16.sp
                                 )
                                 Switch(
@@ -283,9 +286,9 @@ fun AddTransactionScreen(
                                     onCheckedChange = { isScheduled = it },
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = Color.White,
-                                        checkedTrackColor = Color.Black,
+                                        checkedTrackColor = vibrantColor,
                                         uncheckedThumbColor = Color.White,
-                                        uncheckedTrackColor = Color.Gray.copy(alpha = 0.3f)
+                                        uncheckedTrackColor = lightVibrantColor.copy(alpha = 0.3f)
                                     )
                                 )
                             }
@@ -302,19 +305,19 @@ fun AddTransactionScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .clickable { showDatePicker = true },
-                                        placeholder = { Text("Date", color = Color.Gray) },
+                                        placeholder = { Text("Date", color = darkVibrantColor.copy(alpha = 0.5f)) },
                                         enabled = false,
                                         colors = OutlinedTextFieldDefaults.colors(
-                                            disabledTextColor = Color.Black,
-                                            disabledBorderColor = Color.Black.copy(alpha = 0.2f),
-                                            disabledPlaceholderColor = Color.Gray
+                                            disabledTextColor = darkVibrantColor,
+                                            disabledBorderColor = lightVibrantColor.copy(alpha = 0.3f),
+                                            disabledPlaceholderColor = darkVibrantColor.copy(alpha = 0.5f)
                                         ),
                                         shape = RoundedCornerShape(16.dp),
                                         trailingIcon = {
                                             Icon(
                                                 Icons.Default.DateRange,
                                                 contentDescription = "Select Date",
-                                                tint = Color.Black.copy(alpha = 0.6f),
+                                                tint = darkVibrantColor.copy(alpha = 0.6f),
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }
@@ -327,19 +330,19 @@ fun AddTransactionScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .clickable { showTimePicker = true },
-                                        placeholder = { Text("Time", color = Color.Gray) },
+                                        placeholder = { Text("Time", color = darkVibrantColor.copy(alpha = 0.5f)) },
                                         enabled = false,
                                         colors = OutlinedTextFieldDefaults.colors(
-                                            disabledTextColor = Color.Black,
-                                            disabledBorderColor = Color.Black.copy(alpha = 0.2f),
-                                            disabledPlaceholderColor = Color.Gray
+                                            disabledTextColor = darkVibrantColor,
+                                            disabledBorderColor = lightVibrantColor.copy(alpha = 0.3f),
+                                            disabledPlaceholderColor = darkVibrantColor.copy(alpha = 0.5f)
                                         ),
                                         shape = RoundedCornerShape(16.dp),
                                         trailingIcon = {
                                             Icon(
                                                 Icons.Default.AccessTime,
                                                 contentDescription = "Select Time",
-                                                tint = Color.Black.copy(alpha = 0.6f),
+                                                tint = darkVibrantColor.copy(alpha = 0.6f),
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }
@@ -355,6 +358,7 @@ fun AddTransactionScreen(
                 // Notes
                 CleanInputCard(
                     title = "Notes",
+                    titleColor = darkVibrantColor,
                     content = {
                         OutlinedTextField(
                             value = notes,
@@ -362,14 +366,14 @@ fun AddTransactionScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(100.dp),
-                            placeholder = { Text("Add a note (optional)", color = Color.Gray) },
+                            placeholder = { Text("Add a note (optional)", color = darkVibrantColor.copy(alpha = 0.5f)) },
                             maxLines = 3,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.Black,
-                                unfocusedTextColor = Color.Black,
-                                focusedBorderColor = Color.Black,
-                                unfocusedBorderColor = Color.Black.copy(alpha = 0.2f),
-                                cursorColor = Color.Black
+                                focusedTextColor = darkVibrantColor,
+                                unfocusedTextColor = darkVibrantColor,
+                                focusedBorderColor = vibrantColor,
+                                unfocusedBorderColor = lightVibrantColor.copy(alpha = 0.5f),
+                                cursorColor = vibrantColor
                             ),
                             shape = RoundedCornerShape(16.dp)
                         )
@@ -404,6 +408,7 @@ fun AddTransactionScreen(
                     onClick = {
                         createTransaction(
                             sharedViewModel = sharedViewModel,
+                            aptosViewModel = aptosViewModel,
                             currentWalletAddress = currentWalletAddress,
                             receiverAddress = receiverAddress,
                             amount = amount,
@@ -413,19 +418,31 @@ fun AddTransactionScreen(
                             selectedTime = selectedTime,
                             onLoading = { isLoading = it },
                             onError = { errorMessage = it },
-                            onSuccess = { navController.navigateUp() }
+                            onSuccess = {
+                                navController.navigate(ConfirmationScreenRoute(
+                                    senderAddress = currentWalletAddress,
+                                    recipientAddress = receiverAddress,
+                                    amount = amount,
+                                    isSuccess = true,
+                                    scheduledAt = if (isScheduled && selectedDate != null && selectedTime != null) {
+                                        selectedDate!!.atTime(selectedTime!!).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                                    } else null,
+                                    executedAt = Clock.System.now().toEpochMilliseconds(),
+                                    note = notes
+                                ))
+                            }
                         )
                     },
                     enabled = !isLoading && receiverAddress.isNotBlank() && amount.isNotBlank() &&
-                             (!isScheduled || (selectedDate != null && selectedTime != null)),
+                            (!isScheduled || (selectedDate != null && selectedTime != null)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Black,
+                        containerColor = darkVibrantColor,
                         contentColor = Color.White,
-                        disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
-                        disabledContentColor = Color.Gray
+                        disabledContainerColor = lightVibrantColor.copy(alpha = 0.3f),
+                        disabledContentColor = darkVibrantColor.copy(alpha = 0.5f)
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -476,12 +493,12 @@ fun AddTransactionScreen(
                         showDatePicker = false
                     }
                 ) {
-                    Text("OK", color = Color.Black, fontWeight = FontWeight.Medium)
+                    Text("OK", color = darkVibrantColor, fontWeight = FontWeight.Medium)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = Color.Gray)
+                    Text("Cancel", color = darkVibrantColor.copy(alpha = 0.7f))
                 }
             }
         ) {
@@ -489,15 +506,15 @@ fun AddTransactionScreen(
                 state = datePickerState,
                 colors = DatePickerDefaults.colors(
                     containerColor = Color.White,
-                    titleContentColor = Color.Black,
-                    headlineContentColor = Color.Black,
-                    weekdayContentColor = Color.Gray,
-                    subheadContentColor = Color.Gray,
-                    dayContentColor = Color.Black,
+                    titleContentColor = darkVibrantColor,
+                    headlineContentColor = darkVibrantColor,
+                    weekdayContentColor = darkVibrantColor.copy(alpha = 0.7f),
+                    subheadContentColor = darkVibrantColor.copy(alpha = 0.7f),
+                    dayContentColor = darkVibrantColor,
                     selectedDayContentColor = Color.White,
-                    selectedDayContainerColor = Color.Black,
-                    todayContentColor = Color.Black,
-                    todayDateBorderColor = Color.Black
+                    selectedDayContainerColor = vibrantColor,
+                    todayContentColor = darkVibrantColor,
+                    todayDateBorderColor = vibrantColor
                 )
             )
         }
@@ -515,12 +532,12 @@ fun AddTransactionScreen(
                         showTimePicker = false
                     }
                 ) {
-                    Text("OK", color = Color.Black, fontWeight = FontWeight.Medium)
+                    Text("OK", color = darkVibrantColor, fontWeight = FontWeight.Medium)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) {
-                    Text("Cancel", color = Color.Gray)
+                    Text("Cancel", color = darkVibrantColor.copy(alpha = 0.7f))
                 }
             },
             text = {
@@ -528,10 +545,10 @@ fun AddTransactionScreen(
                     state = timePickerState,
                     colors = TimePickerDefaults.colors(
                         containerColor = Color.White,
-                        timeSelectorSelectedContainerColor = Color.Black,
-                        timeSelectorUnselectedContainerColor = Color.Gray.copy(alpha = 0.2f),
+                        timeSelectorSelectedContainerColor = vibrantColor,
+                        timeSelectorUnselectedContainerColor = lightVibrantColor.copy(alpha = 0.2f),
                         timeSelectorSelectedContentColor = Color.White,
-                        timeSelectorUnselectedContentColor = Color.Black
+                        timeSelectorUnselectedContentColor = darkVibrantColor
                     )
                 )
             },
@@ -543,6 +560,7 @@ fun AddTransactionScreen(
 @Composable
 private fun CleanInputCard(
     title: String,
+    titleColor: Color = Color.Black,
     content: @Composable () -> Unit
 ) {
     Column(
@@ -553,7 +571,7 @@ private fun CleanInputCard(
             text = title,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.Black
+            color = titleColor
         )
         content()
     }
@@ -562,6 +580,7 @@ private fun CleanInputCard(
 @OptIn(ExperimentalTime::class)
 private fun createTransaction(
     sharedViewModel: SharedViewModel,
+    aptosViewModel: AptosViewModel,
     currentWalletAddress: String,
     receiverAddress: String,
     amount: String,
@@ -601,7 +620,6 @@ private fun createTransaction(
     }
 
     onLoading(true)
-    onError("")
 
     try {
         if (isScheduled && selectedDate != null && selectedTime != null) {
@@ -616,9 +634,19 @@ private fun createTransaction(
                 cryptoType = "APT",
                 scheduledAt = scheduledMillis,
                 notes = notes,
-                accountId = 1 // TODO: Get actual account ID
+                accountId = 1, // TODO: Get actual account ID
+                executedAt = Clock.System.now().toEpochMilliseconds()
             )
+            onSuccess()
         } else {
+            aptosViewModel.initWallet {
+                aptosViewModel.sendCoins(
+                    receiverAddress, amount = (amountDouble * 100_000_000).toULong()
+                ) { _ ->
+                    aptosViewModel.refreshBalance()
+                    onSuccess()
+                }
+            }
             // Create immediate transaction
             sharedViewModel.createTransaction(
                 fromWalletAddress = currentWalletAddress,
@@ -626,12 +654,13 @@ private fun createTransaction(
                 amount = amount,
                 cryptoType = "APT",
                 notes = notes,
-                accountId = 1 // TODO: Get actual account ID
+                accountId = 1, // TODO: Get actual account ID
+                status = TransactionStatus.COMPLETED,
+                executedAt = Clock.System.now().toEpochMilliseconds()
             )
         }
 
         onLoading(false)
-        onSuccess()
     } catch (e: Exception) {
         onLoading(false)
         onError(e.message ?: "Failed to create transaction")

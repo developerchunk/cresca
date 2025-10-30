@@ -68,3 +68,16 @@ object AppColors {
     }
 }
 
+
+object ThemeColors {
+
+
+    var dominantColorState: Color = AppColors.cosmicBlue
+    var textColor: Color = AppColors.textPrimary
+    var cardColor: Color = AppColors.primaryBlue
+    var cardBorderColor: Color = AppColors.primaryBlue
+    var primaryColor: Color = AppColors.primaryBlue
+    var secondaryColor: Color = AppColors.brightCyan
+
+}
+

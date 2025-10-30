@@ -2,7 +2,13 @@ package com.developerstring.nexpay.ui
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,11 +26,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.Close
-
 import androidx.compose.material.icons.rounded.TapAndPlay
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
@@ -38,15 +45,21 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.colorspace.WhitePoint
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -62,9 +75,14 @@ import androidx.navigation.compose.rememberNavController
 import com.developerstring.nexpay.navigation.bottom_nav.BottomNavGraph
 import com.developerstring.nexpay.navigation.bottom_nav.BottomNavRoute
 import com.developerstring.nexpay.ui.nfc.NFCScreenRoute
+import com.developerstring.nexpay.ui.transaction.AddTransactionScreenRoute
+import com.developerstring.nexpay.ui.transaction.ReceivePaymentScreenRoute
 
 import com.developerstring.nexpay.viewmodel.AptosViewModel
 import com.developerstring.nexpay.viewmodel.SharedViewModel
+import com.kmpalette.PaletteState
+import com.kmpalette.color
+import com.kmpalette.palette.graphics.Palette
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.painterResource
 
@@ -84,25 +102,34 @@ fun MainScreen(
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState()
     val scope = rememberCoroutineScope()
 
+    val imagePalette by sharedViewModel.imagePalette.collectAsState()
+
+    val lightVibrantColor by sharedViewModel.lightVibrantColor
+    val darkVibrantColor by sharedViewModel.darkVibrantColor
+    val vibrantColor by sharedViewModel.vibrantColor
+
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
         sheetContent = {
-            SendReceiveBottomSheet(
-                onClose = {
-                    scope.launch {
-                        bottomSheetScaffoldState.bottomSheetState.partialExpand()
-                    }
-                },
-                navController = nav
-            )
+//            SendReceiveBottomSheet(
+//                lightColor = lightVibrantColor,
+//                darkColor = darkVibrantColor,
+//                vibrant = vibrantColor,
+//                onClose = {
+//                    scope.launch {
+//                        bottomSheetScaffoldState.bottomSheetState.partialExpand()
+//                    }
+//                },
+//                navController = nav
+//            )
         },
         sheetPeekHeight = 0.dp,
         sheetDragHandle = null,
-        containerColor = Color.Transparent,
+        containerColor = Color.Unspecified,
         sheetContainerColor = Color.White,
         sheetShadowElevation = 16.dp,
         modifier = Modifier.fillMaxSize(),
-        content = { paddingValues ->
+        content = { _ ->
             val isDimVisible by remember {
                 derivedStateOf {
                     bottomSheetScaffoldState.bottomSheetState.targetValue == SheetValue.Expanded
@@ -119,15 +146,11 @@ fun MainScreen(
             Scaffold(
                 bottomBar = {
                     BottomNavBar(
+                        imagePalette = imagePalette,
                         navController = nav,
-                        onSendReceiveClick = {
-                            scope.launch {
-                                bottomSheetScaffoldState.bottomSheetState.expand()
-                            }
-                        }
                     )
                 },
-                content = { innerPadding ->
+                content = { _ ->
                     Column(
                         modifier = Modifier
                     ) {
@@ -145,8 +168,8 @@ fun MainScreen(
 
 @Composable
 fun BottomNavBar(
+    imagePalette: PaletteState<ImageBitmap>?,
     navController: NavHostController,
-    onSendReceiveClick: () -> Unit = {}
 ) {
     val screens = listOf(
         BottomNavRoute.Wallet,
@@ -161,115 +184,204 @@ fun BottomNavBar(
 
     val bottomBarDestination = screens.any { it.route == currentDestination?.route }
 
+    val gradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0x00FFFFFF),
+            Color(0xBAFFFFFF),
+            Color(0xE2FFFFFF),
+            Color(0xFFFFFFFF)
+        )
+    )
+
     if (bottomBarDestination) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding(),
+                .padding(horizontal = 20.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Clean DeFi-themed navigation bar - no floating, no rounded edges
+
+            Box(
+                modifier = Modifier.height(100.dp).fillMaxWidth()
+                    .background(brush = gradient)
+                    .align(Alignment.BottomCenter)
+            )
+
+            // Floating rounded navigation bar
             Box(
                 modifier = Modifier
-                    .height(72.dp)
+                    .navigationBarsPadding()
+                    .padding(top = 15.dp, bottom = 10.dp)
                     .fillMaxWidth()
-                    .background(Color.White)
+                    .shadow(
+                        elevation = 16.dp,
+                        shape = RoundedCornerShape(28.dp),
+                        clip = false
+                    )
+                    .background(color = Color.White, shape = RoundedCornerShape(28.dp))
+                    .background(
+                        color = imagePalette?.palette?.lightVibrantSwatch?.color?.copy(0.05f) ?: Color.White,
+                        shape = RoundedCornerShape(28.dp)
+                    )
+                    .clip(RoundedCornerShape(28.dp)),
             ) {
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     screens.forEach { screen ->
-                        CleanNavItem(
+                        FloatingNavItem(
+                            iconColor = imagePalette?.palette?.darkVibrantSwatch?.color ?: Color.Black,
                             screen = screen,
                             currentDestination = currentDestination,
                             navController = navController,
-                            onSendReceiveClick = onSendReceiveClick
                         )
                     }
                 }
             }
-            Box(modifier = Modifier.fillMaxWidth().height(1.dp).align(Alignment.TopCenter).background(Color.LightGray))
+
+//            Box(
+//                modifier = Modifier
+//                    .size(52.dp)
+//                    .shadow(
+//                        elevation = 8.dp,
+//                        shape = RoundedCornerShape(20.dp)
+//                    )
+//                    .clip(RoundedCornerShape(20.dp))
+//                    .background(imagePalette?.palette?.darkVibrantSwatch?.color ?: Color.Black)
+//                    .align(Alignment.TopCenter)
+//                    .clickable(
+//                        onClick = {
+//
+//                        }
+//                    ),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Icon(
+//                    painter = painterResource(resource = BottomNavRoute.Send.icon),
+//                    contentDescription = "Send/Receive",
+//                    tint = Color.White,
+//                    modifier = Modifier.size(28.dp)
+//                )
+//            }
         }
     }
 }
 
 @Composable
-fun CleanNavItem(
+fun FloatingNavItem(
+    iconColor: Color,
     screen: BottomNavRoute,
     currentDestination: NavDestination?,
     navController: NavHostController,
-    onSendReceiveClick: () -> Unit = {}
 ) {
     val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-    val isSendItem = screen.route == SendReceiveScreenRoute.toString()
-    
-    // Animation for scale when selected (only for non-Send items)
+
+    // Slow and visible scale animation for icons
     val scale by animateFloatAsState(
-        targetValue = if (selected && !isSendItem) 1.15f else 1f,
+        targetValue = 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+            stiffness = Spring.StiffnessVeryLow
         ),
         label = "scale_animation"
     )
 
     val interactionSource = remember { MutableInteractionSource() }
 
-    Box(
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .size(48.dp)
+            .padding(vertical = 8.dp)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = {
-                    if (screen.route == SendReceiveScreenRoute.toString()) {
-                        onSendReceiveClick()
-                    } else {
-                        navController.navigate(screen.route) {
-                            popUpTo(navController.graph.findStartDestination().id)
-                            launchSingleTop = true
-                        }
+                    navController.navigate(screen.route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
                     }
                 }
-            ),
-        contentAlignment = Alignment.Center
+            )
     ) {
-        if (isSendItem) {
-            // Send item with permanent black background card
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.Black),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(resource = screen.icon),
-                    contentDescription = "Send/Receive",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        } else {
-            // Other items with scaling animation
+        Box(
+            modifier = Modifier
+                .size(28.dp),
+            contentAlignment = Alignment.Center
+        ) {
+
             Icon(
                 painter = painterResource(resource = screen.icon),
                 contentDescription = screen.title,
-                tint = if (selected) Color.Black else Color.Black.copy(alpha = 0.4f),
+                tint = if (selected) iconColor else iconColor.copy(alpha = 0.4f),
                 modifier = Modifier
                     .size(24.dp)
                     .scale(scale)
             )
         }
+
+        val textHeight by animateDpAsState(
+            targetValue = if (selected) 18.dp else 0.dp,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessVeryLow
+            ),
+            label = "text_height_animation"
+        )
+
+        Box(
+            modifier = Modifier.height(textHeight),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            this@Column.AnimatedVisibility(
+                visible = selected,
+                enter = slideInVertically(
+                    initialOffsetY = { fullHeight -> fullHeight / 2 },
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessVeryLow
+                    )
+                ) + fadeIn(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessVeryLow
+                    )
+                ),
+                exit = slideOutVertically(
+                    targetOffsetY = { fullHeight -> fullHeight / 2 },
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessVeryLow
+                    )
+                ) + fadeOut(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessVeryLow
+                    )
+                )
+            ) {
+                Text(
+                    text = screen.title,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = iconColor,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
     }
 }
 
 @Composable
-fun SendReceiveBottomSheet(
+fun SendReceiveBotthomSheet(
+    lightColor: Color,
+    darkColor: Color,
+    vibrant: Color,
     onClose: () -> Unit,
     navController: NavController
 ) {
@@ -290,7 +402,7 @@ fun SendReceiveBottomSheet(
             Text(
                 text = "Send & Receive",
                 style = MaterialTheme.typography.headlineSmall.copy(
-                    color = Color.Black,
+                    color = darkColor,
                     fontWeight = FontWeight.Bold
                 )
             )
@@ -301,7 +413,7 @@ fun SendReceiveBottomSheet(
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Close",
-                    tint = Color.Black
+                    tint = darkColor
                 )
             }
         }
@@ -318,13 +430,13 @@ fun SendReceiveBottomSheet(
                 modifier = Modifier
                     .weight(1f)
                     .clickable {
-                        // TODO: Navigate to Send screen
+                        navController.navigate(AddTransactionScreenRoute())
                         onClose()
                     },
                 colors = androidx.compose.material3.CardDefaults.cardColors(
                     containerColor = Color.White
                 ),
-                border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f)),
+                border = BorderStroke(1.dp, darkColor.copy(alpha = 0.1f)),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
@@ -337,7 +449,7 @@ fun SendReceiveBottomSheet(
                         modifier = Modifier
                             .size(56.dp)
                             .background(
-                                Color.Black,
+                                darkColor,
                                 RoundedCornerShape(16.dp)
                             ),
                         contentAlignment = Alignment.Center
@@ -355,7 +467,7 @@ fun SendReceiveBottomSheet(
                     Text(
                         text = "Send",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            color = Color.Black,
+                            color = darkColor,
                             fontWeight = FontWeight.SemiBold
                         )
                     )
@@ -377,13 +489,13 @@ fun SendReceiveBottomSheet(
                 modifier = Modifier
                     .weight(1f)
                     .clickable {
-                        // TODO: Navigate to Receive screen
+                        navController.navigate(ReceivePaymentScreenRoute)
                         onClose()
                     },
                 colors = androidx.compose.material3.CardDefaults.cardColors(
                     containerColor = Color.White
                 ),
-                border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f)),
+                border = BorderStroke(1.dp, darkColor.copy(alpha = 0.1f)),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
@@ -396,7 +508,7 @@ fun SendReceiveBottomSheet(
                         modifier = Modifier
                             .size(56.dp)
                             .background(
-                                Color.Black,
+                                darkColor,
                                 RoundedCornerShape(16.dp)
                             ),
                         contentAlignment = Alignment.Center
@@ -414,7 +526,7 @@ fun SendReceiveBottomSheet(
                     Text(
                         text = "Receive",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            color = Color.Black,
+                            color = darkColor,
                             fontWeight = FontWeight.SemiBold
                         )
                     )
@@ -438,11 +550,11 @@ fun SendReceiveBottomSheet(
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
                 .clickable {
-                    navController?.navigate(NFCScreenRoute)
+                    navController.navigate(NFCScreenRoute)
                     onClose()
                 },
             colors = androidx.compose.material3.CardDefaults.cardColors(
-                containerColor = Color.Black.copy(alpha = 0.05f)
+                containerColor = darkColor.copy(alpha = 0.05f)
             ),
             shape = RoundedCornerShape(16.dp)
         ) {
@@ -456,7 +568,7 @@ fun SendReceiveBottomSheet(
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            Color.Black,
+                            darkColor,
                             RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -475,7 +587,7 @@ fun SendReceiveBottomSheet(
                     Text(
                         text = "Tap to Pay",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            color = Color.Black,
+                            color = darkColor,
                             fontWeight = FontWeight.SemiBold
                         )
                     )

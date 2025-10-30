@@ -1,109 +1,472 @@
 package com.developerstring.nexpay.ui.nfc
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.Nfc
+import androidx.compose.material.icons.rounded.QrCode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import com.developerstring.nexpay.utils.copyToClipboard
+import com.developerstring.nexpay.viewmodel.AptosViewModel
+import com.developerstring.nexpay.viewmodel.SharedViewModel
 import kotlinx.serialization.Serializable
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NFCScreen(
-    modifier: Modifier = Modifier,
+    sharedViewModel: SharedViewModel,
+    aptosViewModel: AptosViewModel,
+    navController: NavController,
     viewModel: NFCViewModel = viewModel(),
     onNavigateToSend: (String) -> Unit = {},
-    onNavigateToReceive: () -> Unit = {},
     onNavigateToAddTransaction: (String) -> Unit = {}
 ) {
+
+    val currentAptosState by aptosViewModel.uiState.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Set a default wallet address for demo purposes and test NFC immediately
+    val lightVibrantColor by sharedViewModel.lightVibrantColor
+    val darkVibrantColor by sharedViewModel.darkVibrantColor
+    val vibrantColor by sharedViewModel.vibrantColor
+
+    // Animation states
+    val scaleAnimation = remember { Animatable(0.8f) }
+
+    // Launch animation when screen loads
     LaunchedEffect(Unit) {
-        viewModel.setWalletAddress("0x1234567890abcdef1234567890abcdef12345678")
-        // Trigger NFC status check immediately for debugging
+        viewModel.setWalletAddress(currentAptosState.walletAddress.toString())
         viewModel.refreshNFCStatus()
+
+        scaleAnimation.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(
+                durationMillis = 800,
+                easing = FastOutSlowInEasing
+            )
+        )
     }
 
     // Handle received wallet address from NFC tap
     LaunchedEffect(uiState.receivedWalletAddress) {
         uiState.receivedWalletAddress?.let { walletAddress ->
-            // Navigate to AddTransactionScreen with the received wallet address
             onNavigateToAddTransaction(walletAddress)
-            // Clear the received address to avoid re-navigation
             viewModel.clearReceivedAddress()
         }
     }
 
-    Column(
-        modifier = modifier
+    // Animated background colors
+    val animatedColor1 by animateColorAsState(
+        targetValue = vibrantColor,
+        animationSpec = tween(800, easing = FastOutSlowInEasing),
+        label = "backgroundColor1"
+    )
+
+    val animatedColor2 by animateColorAsState(
+        targetValue = lightVibrantColor,
+        animationSpec = tween(800, easing = FastOutSlowInEasing),
+        label = "backgroundColor2"
+    )
+
+    Box(
+        modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Top App Bar
-        CenterAlignedTopAppBar(
-            title = {
-                Text(
-                    text = "NFC Tap to Pay",
-                    fontWeight = FontWeight.Bold
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        animatedColor1.copy(alpha = 0.6f),
+                        animatedColor2.copy(alpha = 0.4f),
+                        animatedColor1.copy(alpha = 0.3f)
+                    ),
+                    radius = 1500f
                 )
-            }
+            )
+    ) {
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(50.dp)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            animatedColor1.copy(alpha = 0.3f),
+                            animatedColor2.copy(alpha = 0.5f)
+                        )
+                    )
+                )
         )
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 40.dp, start = 16.dp, end = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // NFC Status Card
-            item {
-                NFCStatusCard(
-                    isNFCAvailable = uiState.isNFCAvailable,
-                    isNFCEnabled = uiState.isNFCEnabled,
-                    onRefreshClick = { viewModel.refreshNFCStatus() }
-                )
-            }
-
-            // Main Tap to Pay Card
-            if (uiState.isNFCAvailable && uiState.isNFCEnabled) {
-                item {
-                    TapToPayCard(
-                        onTapToPayClick = { viewModel.startReading() },
-                        onReceiveClick = { viewModel.startSharing() }
+            // Top app bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 40.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { navController.popBackStack() }
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.Black,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
 
-                // Current Wallet Address Display
-                item {
-                    WalletAddressCard(
-                        walletAddress = uiState.currentWalletAddress,
-                        onWriteToTag = { viewModel.writeWalletAddressToTag(it) }
-                    )
+                Spacer(modifier = Modifier.weight(1f))
+
+                Text(
+                    text = "NFC Tap to Pay",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Empty space for centering
+                Box(modifier = Modifier.size(48.dp))
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // NFC Status and Main Content
+            if (uiState.isNFCAvailable && uiState.isNFCEnabled) {
+
+                // Main NFC Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .scale(scaleAnimation.value),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.4f)),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // NFC Icon with pulse animation
+                        NFCPulseIcon(darkVibrantColor)
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Text(
+                            text = "Ready for NFC",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = darkVibrantColor,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Text(
+                            text = "Hold devices close to exchange payments",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = darkVibrantColor.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
+                        )
+
+                        // Clean Buttons
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Tap to Pay Button
+                            Button(
+                                onClick = { viewModel.startReading() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = darkVibrantColor.copy(alpha = 0.3f),
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(100)
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Tap to Pay",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                    Icon(
+                                        Icons.Rounded.Nfc,
+                                        contentDescription = "Tap to Pay",
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                            }
+
+                            // Receive Button
+                            Button(
+                                onClick = { viewModel.startSharing() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = darkVibrantColor.copy(alpha = 0.3f),
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(100)
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Receive",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+
+                                    Icon(
+                                        Icons.Rounded.QrCode,
+                                        contentDescription = "Receive",
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Wallet Address Section
+                        if (uiState.currentWalletAddress.isNotEmpty()) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Your Wallet Address",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.Black.copy(alpha = 0.6f),
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+
+                                // Compressed wallet address
+                                val walletAddress = uiState.currentWalletAddress
+                                val compressedAddress = if (walletAddress.length > 16) {
+                                    "${walletAddress.take(8)}...${walletAddress.takeLast(8)}"
+                                } else {
+                                    walletAddress
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            Color.Black.copy(alpha = 0.05f),
+                                            RoundedCornerShape(12.dp)
+                                        )
+                                        .padding(10.dp)
+                                        .clickable(
+                                            onClick = {
+                                                copyToClipboard(walletAddress)
+                                            }
+                                        ),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = compressedAddress,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = Color.Black,
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Received Address Card
                 uiState.receivedWalletAddress?.let { address ->
-                    item {
-                        ReceivedAddressCard(
-                            walletAddress = address,
-                            onSendToAddress = { onNavigateToSend(address) },
-                            onDismiss = { viewModel.clearReceivedAddress() }
-                        )
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = lightVibrantColor.copy(alpha = 0.9f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color.Green,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Address Received!",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.Black
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { viewModel.clearReceivedAddress() }
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Dismiss",
+                                        tint = Color.Black
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Button(
+                                onClick = { onNavigateToSend(address) },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Black,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Send Payment",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
                     }
                 }
-            }
 
-            // Instructions Card
-            item {
-                InstructionsCard()
+            } else {
+                // NFC Not Available/Disabled state
+                Spacer(modifier = Modifier.weight(1f))
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (!uiState.isNFCAvailable) Icons.Default.Error else Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = if (!uiState.isNFCAvailable) Color.Red else Color(0xFFFF9800),
+                            modifier = Modifier.size(48.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = if (!uiState.isNFCAvailable) "NFC Not Available" else "NFC Disabled",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = if (!uiState.isNFCAvailable)
+                                "This device doesn't support NFC functionality"
+                            else
+                                "Please enable NFC in your device settings to use tap to pay",
+                            fontSize = 14.sp,
+                            color = Color.Black.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
+                            lineHeight = 20.sp
+                        )
+
+                        if (uiState.isNFCAvailable && !uiState.isNFCEnabled) {
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Button(
+                                onClick = { viewModel.refreshNFCStatus() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = darkVibrantColor,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Check Again",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }
@@ -123,333 +486,61 @@ fun NFCScreen(
         onStopSharing = { viewModel.stopSharing() }
     )
 
-    // Error/Success Snackbars
-    uiState.errorMessage?.let { message ->
-        LaunchedEffect(message) {
-            // Show error snackbar (you could use SnackbarHost here)
-            viewModel.clearMessages()
-        }
-    }
-
-    uiState.successMessage?.let { message ->
-        LaunchedEffect(message) {
-            // Show success snackbar (you could use SnackbarHost here)
-            viewModel.clearMessages()
-        }
-    }
-
     // Loading Indicator
     if (uiState.isLoading) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = darkVibrantColor)
         }
     }
 }
 
 @Composable
-private fun NFCStatusCard(
-    isNFCAvailable: Boolean,
-    isNFCEnabled: Boolean,
-    onRefreshClick: () -> Unit
+private fun NFCPulseIcon(
+    color: Color
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                !isNFCAvailable -> MaterialTheme.colorScheme.errorContainer
-                !isNFCEnabled -> MaterialTheme.colorScheme.warningContainer
-                else -> MaterialTheme.colorScheme.primaryContainer
-            }
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = when {
-                            !isNFCAvailable -> Icons.Default.Error
-                            !isNFCEnabled -> Icons.Default.Warning
-                            else -> Icons.Default.CheckCircle
-                        },
-                        contentDescription = null,
-                        tint = when {
-                            !isNFCAvailable -> MaterialTheme.colorScheme.onErrorContainer
-                            !isNFCEnabled -> MaterialTheme.colorScheme.onSurface
-                            else -> MaterialTheme.colorScheme.onPrimaryContainer
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "NFC Status",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+    val infiniteTransition = rememberInfiniteTransition(label = "nfc_pulse")
 
-                IconButton(onClick = onRefreshClick) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh"
-                    )
-                }
-            }
+    val animatedScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale_animation"
+    )
 
-            Spacer(modifier = Modifier.height(8.dp))
+    val animatedAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha_animation"
+    )
 
-            Text(
-                text = when {
-                    !isNFCAvailable -> "NFC is not available on this device"
-                    !isNFCEnabled -> "NFC is available but not enabled. Please enable NFC in settings."
-                    else -> "NFC is available and enabled. Ready for transactions!"
-                },
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-    }
-}
-
-@Composable
-private fun WalletAddressCard(
-    walletAddress: String,
-    onWriteToTag: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Your Wallet Address",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Text(
-                    text = walletAddress,
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedButton(
-                onClick = { onWriteToTag(walletAddress) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Nfc,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Write to NFC Tag")
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReceivedAddressCard(
-    walletAddress: String,
-    onSendToAddress: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Address Received!",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Dismiss"
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Text(
-                    text = walletAddress,
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            ElevatedButton(
-                onClick = onSendToAddress,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.elevatedButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Send to this Address")
-            }
-        }
-    }
-}
-
-@Composable
-private fun InstructionsCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "How to Use NFC",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            InstructionItem(
-                number = "1",
-                text = "Tap 'Tap to Pay' to receive a wallet address from another device"
-            )
-
-            InstructionItem(
-                number = "2",
-                text = "Tap 'Receive' to share your wallet address with another device"
-            )
-
-            InstructionItem(
-                number = "3",
-                text = "Hold devices close together (within 4cm) for NFC to work"
-            )
-
-            InstructionItem(
-                number = "4",
-                text = "Make sure both devices have NFC enabled in settings"
-            )
-        }
-    }
-}
-
-@Composable
-private fun InstructionItem(
-    number: String,
-    text: String
-) {
-    Row(
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.Top
+            .size(80.dp)
+            .scale(animatedScale)
+            .background(
+                color.copy(alpha = animatedAlpha * 0.2f),
+                RoundedCornerShape(20.dp)
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .padding(2.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = number,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f)
+        Icon(
+            Icons.Default.Nfc,
+            contentDescription = "NFC",
+            modifier = Modifier.size(40.dp),
+            tint = color.copy(alpha = animatedAlpha)
         )
     }
 }
-
-// Extension to fix the warning container color
-@get:Composable
-private val ColorScheme.warningContainer: androidx.compose.ui.graphics.Color
-    get() = androidx.compose.ui.graphics.Color(0xFFFFF8E1) // Light amber
-
-@get:Composable
-private val ColorScheme.onWarningContainer: androidx.compose.ui.graphics.Color
-    get() = androidx.compose.ui.graphics.Color(0xFF8F6200) // Dark amber
 
 // Navigation route for NFCScreen
 @Serializable

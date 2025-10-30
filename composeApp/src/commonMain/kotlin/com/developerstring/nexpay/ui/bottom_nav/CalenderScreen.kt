@@ -28,23 +28,20 @@ import androidx.navigation.NavController
 import com.developerstring.nexpay.data.room_db.model.Transaction
 import com.developerstring.nexpay.data.room_db.model.TransactionStatus
 import com.developerstring.nexpay.ui.transaction.AddTransactionScreenRoute
+import com.developerstring.nexpay.ui.transaction.ViewAllTransactionRoute
 import com.developerstring.nexpay.viewmodel.SharedViewModel
 import kotlinx.datetime.*
 import kotlinx.serialization.Serializable
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-
 @Serializable
 data object CalenderScreenRoute
 
-@OptIn(ExperimentalTime::class)
 @Composable
 fun CalenderScreen(
     sharedViewModel: SharedViewModel,
     navController: NavController,
 ) {
-    val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-    val endOfMonth = today.plus(1, DateTimeUnit.MONTH).minus(today.day, DateTimeUnit.DAY)
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val endOfMonth = today.plus(1, DateTimeUnit.MONTH).minus(today.dayOfMonth, DateTimeUnit.DAY)
     val scheduledTransactions by sharedViewModel.getScheduledTransactions().collectAsState(initial = emptyList())
 
     // Filter transactions for current month (from today to end of month)
@@ -54,12 +51,19 @@ fun CalenderScreen(
         scheduledDate >= today && scheduledDate <= endOfMonth
     }
 
+    val lightVibrantColor by sharedViewModel.lightVibrantColor
+    val darkVibrantColor by sharedViewModel.darkVibrantColor
+    val vibrantColor by sharedViewModel.vibrantColor
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(Color.White).padding(bottom = 80.dp),
         verticalArrangement = Arrangement.Top,
     ) {
         item {
             CalenderComponent(
+                lightColor = lightVibrantColor,
+                darkColor = darkVibrantColor,
+                vibrant = vibrantColor,
                 navController = navController,
                 onDateSelected = { selectedDate ->
                     // Handle date selection - you can add your custom logic here
@@ -83,7 +87,7 @@ fun CalenderScreen(
                     },
                     modifier = Modifier.weight(0.5f).fillMaxHeight(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Black
+                        containerColor = darkVibrantColor
                     ),
                     shape = RoundedCornerShape(28.dp)
                 ) {
@@ -101,7 +105,7 @@ fun CalenderScreen(
                     },
                     modifier = Modifier.weight(0.5f).fillMaxHeight(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Black
+                        containerColor = darkVibrantColor
                     ),
                     shape = RoundedCornerShape(28.dp)
                 ) {
@@ -122,20 +126,23 @@ fun CalenderScreen(
                 onViewAllClick = {
                     // Navigate to all scheduled payments screen
                     // You can implement this navigation as needed
+                    navController.navigate(ViewAllTransactionRoute)
                 }
             )
         }
     }
 }
 
-@OptIn(ExperimentalTime::class)
 @Composable
 fun CalenderComponent(
     modifier: Modifier = Modifier,
-    navController: NavController,
-    onDateSelected: (LocalDate) -> Unit = {}
+    @Suppress("UNUSED_PARAMETER") navController: NavController,
+    onDateSelected: (LocalDate) -> Unit = {},
+    lightColor: Color,
+    darkColor: Color,
+    vibrant: Color,
 ) {
-    val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     var currentMonth by remember { mutableStateOf(today.month) }
     var currentYear by remember { mutableStateOf(today.year) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
@@ -182,13 +189,15 @@ fun CalenderComponent(
                         currentMonth = Month(currentMonth.number + 1)
                     }
                 },
-                modifier = Modifier.alpha(alpha)
+                modifier = Modifier.alpha(alpha),
+                lightColor = lightColor,
+                darkColor = darkColor,
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             // Days of week header
-            DaysOfWeekHeader()
+            DaysOfWeekHeader(vibrant)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -215,7 +224,9 @@ private fun CalendarHeader(
     currentYear: Int,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    lightColor: Color,
+    darkColor: Color,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -228,12 +239,13 @@ private fun CalendarHeader(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFF8F9FA))
+                .background(Color.White)
+                .background(lightColor.copy(0.05f))
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Default.KeyboardArrowLeft,
                 contentDescription = "Previous month",
-                tint = Color(0xFF6C757D),
+                tint = darkColor,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -248,7 +260,7 @@ private fun CalendarHeader(
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp
                 ),
-                color = Color(0xFF212529)
+                color = darkColor
             )
             Text(
                 text = currentYear.toString(),
@@ -256,7 +268,7 @@ private fun CalendarHeader(
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp
                 ),
-                color = Color(0xFF6C757D)
+                color = darkColor
             )
         }
 
@@ -266,12 +278,13 @@ private fun CalendarHeader(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFF8F9FA))
+                .background(Color.White)
+                .background(lightColor.copy(0.05f))
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
                 contentDescription = "Next month",
-                tint = Color(0xFF6C757D),
+                tint = darkColor,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -279,7 +292,9 @@ private fun CalendarHeader(
 }
 
 @Composable
-private fun DaysOfWeekHeader() {
+private fun DaysOfWeekHeader(
+    vibrant: Color
+) {
     val daysOfWeek = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
     Row(
@@ -293,7 +308,7 @@ private fun DaysOfWeekHeader() {
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp
                 ),
-                color = Color(0xFF6C757D),
+                color = vibrant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f)
             )
@@ -311,9 +326,8 @@ private fun CalendarGrid(
     modifier: Modifier = Modifier
 ) {
     val firstDayOfMonth = LocalDate(currentYear, currentMonth, 1)
-    val daysInMonth = firstDayOfMonth.daysUntil(
-        firstDayOfMonth.plus(1, DateTimeUnit.MONTH)
-    )
+    val nextMonth = firstDayOfMonth.plus(1, DateTimeUnit.MONTH)
+    val daysInMonth = firstDayOfMonth.daysUntil(nextMonth)
 
     // Get the day of week for the first day (0 = Monday, 6 = Sunday in kotlinx-datetime)
     // We need to convert to 0 = Sunday for our calendar
@@ -325,11 +339,12 @@ private fun CalendarGrid(
         DayOfWeek.THURSDAY -> 4
         DayOfWeek.FRIDAY -> 5
         DayOfWeek.SATURDAY -> 6
+        else -> 0 // fallback, should not happen
     }
 
     // Calculate previous month's trailing dates
     val previousMonthDate = firstDayOfMonth.minus(1, DateTimeUnit.DAY)
-    val daysInPreviousMonth = previousMonthDate.day
+    val daysInPreviousMonth = previousMonthDate.dayOfMonth
 
     Column(
         modifier = modifier.fillMaxWidth()
@@ -583,7 +598,6 @@ private fun EmptyScheduledPaymentsCard() {
     }
 }
 
-@OptIn(ExperimentalTime::class)
 @Composable
 private fun ScheduledPaymentCard(
     transaction: Transaction,
@@ -728,7 +742,7 @@ private fun ScheduledPaymentCard(
                 ) {
                     scheduledDateTime?.let { dateTime ->
                         Text(
-                            text = "${dateTime.date.month.number}/${dateTime.date.day}/${dateTime.date.year}",
+                            text = "${dateTime.date.month.number}/${dateTime.date.dayOfMonth}/${dateTime.date.year}",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 12.sp
@@ -769,4 +783,3 @@ private fun ScheduledPaymentCard(
         }
     }
 }
-

@@ -5,6 +5,9 @@
         <key>CADisableMinimumFrameDurationOnPhone</key>
         <true/>
 
+        <key>NSCameraUsageDescription</key><string>$(PRODUCT_NAME) camera description.</string>
+        <key>NSPhotoLibraryUsageDescription</key><string>$(PRODUCT_NAME) photos description.</string>
+
         <!-- NFC Configuration -->
         <key>NFCReaderUsageDescription</key>
         <string>This app uses NFC to read wallet addresses from other devices for secure transactions.</string>

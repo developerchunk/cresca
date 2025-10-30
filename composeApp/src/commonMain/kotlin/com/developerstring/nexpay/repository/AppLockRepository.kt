@@ -1,5 +1,6 @@
 package com.developerstring.nexpay.repository
 
+import androidx.compose.runtime.collectAsState
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -9,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import xyz.mcxross.kaptos.account.Account
+import xyz.mcxross.kaptos.account.Ed25519Account
+import xyz.mcxross.kaptos.core.crypto.Ed25519PrivateKey
+import xyz.mcxross.kaptos.core.crypto.PrivateKey
 import xyz.mcxross.kaptos.account.Account as AptosAccount
 
 expect fun hashPin(pin: String): String
@@ -78,32 +82,56 @@ class AppLockRepository(
     // Store a reference to the current account in memory
     private var persistentAccount: AptosAccount? = null
 
-    suspend fun initializePersistentAccount(): AptosAccount {
+    suspend fun initializePersistentAccount(
+        userPrivateKey: String?,
+        privateKey: String = ""
+    ): AptosAccount {
         return if (persistentAccount != null) {
             persistentAccount!!
         } else {
             val hasExistingAccount = hasStoredAccount()
             if (hasExistingAccount) {
-                // We have a flag indicating an account was created before
-                // But since we can't restore it, we'll create a new one and mark it as persistent
-                val newAccount = AptosAccount.generate()
+                // 0x838cc962666ec87131c76954029edd8373c077343c3eb3798e0c9d5521479a56
+                // 0x397a1ce0ddd72e5a09107f52ef50286084442f6b1ac68605fb452656c1a930fb
+
+                val newAccount = Ed25519Account(
+                    Ed25519PrivateKey(getWalletAddress()),
+                )
                 persistentAccount = newAccount
-                markAccountAsStored(newAccount)
                 newAccount
             } else {
-                // First time - create and persist
-                val newAccount = AptosAccount.generate()
-                persistentAccount = newAccount
-                markAccountAsStored(newAccount)
-                newAccount
+                val account = if (userPrivateKey != null) {
+                    Ed25519Account(
+                        Ed25519PrivateKey(userPrivateKey)
+                    )
+                } else {
+                    Ed25519Account.generate()
+                }
+                persistentAccount = account
+                markAccountAsStored(account)
+                setAccountAddress(account.privateKey.toString())
+                account
             }
         }
     }
 
+    suspend fun setAccountAddress(walletAddress: String) {
+        encryptedDataStore.edit { prefs ->
+            prefs[ACCOUNT_ADDRESS] = walletAddress
+        }
+    }
+
+    suspend fun getWalletAddress(): String {
+        return encryptedDataStore.data.map { preferences ->
+            preferences[ACCOUNT_ADDRESS] ?: ""
+        }.first()
+    }
+
     suspend fun getPersistentAccount(): AptosAccount? {
+
         return persistentAccount ?: run {
             if (hasStoredAccount()) {
-                initializePersistentAccount()
+                initializePersistentAccount(userPrivateKey = null,privateKey = getWalletAddress())
             } else {
                 null
             }

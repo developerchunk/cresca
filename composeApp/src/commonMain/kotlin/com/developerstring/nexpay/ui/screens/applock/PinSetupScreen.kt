@@ -35,6 +35,7 @@ import androidx.navigation.NavController
 import com.developerstring.nexpay.SplashScreenRoute
 import com.developerstring.nexpay.ui.theme.AppColors
 import com.developerstring.nexpay.viewmodel.SharedViewModel
+import com.kmpalette.color
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -46,6 +47,9 @@ fun PinSetupScreen(
     sharedViewModel: SharedViewModel,
     navController: NavController,
 ) {
+
+    val imagePalette by sharedViewModel.imagePalette.collectAsState()
+
     val appLockState by sharedViewModel.appLockState.collectAsState()
     val pinInput by sharedViewModel.pinInput.collectAsState()
 
@@ -196,7 +200,9 @@ fun PinSetupScreen(
                 onBackspaceClick = {
                     sharedViewModel.removePinDigit()
                 },
-                enabled = !appLockState.isAuthenticating
+                enabled = !appLockState.isAuthenticating,
+                colorLight = imagePalette?.palette?.lightVibrantSwatch?.color ?: Color.White,
+                colorDark = imagePalette?.palette?.darkVibrantSwatch?.color ?: Color.Black
             )
 
             Spacer(modifier = Modifier.height(32.dp))

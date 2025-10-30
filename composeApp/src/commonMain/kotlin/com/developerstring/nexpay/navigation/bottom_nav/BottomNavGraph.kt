@@ -16,6 +16,8 @@ import com.developerstring.nexpay.ui.bottom_nav.ProfileScreen
 import com.developerstring.nexpay.ui.bottom_nav.ProfileScreenRoute
 import com.developerstring.nexpay.ui.bottom_nav.WalletScreen
 import com.developerstring.nexpay.ui.bottom_nav.WalletScreenRoute
+import com.developerstring.nexpay.ui.transaction.SwapScreen
+import com.developerstring.nexpay.ui.transaction.SwapScreenRoute
 import com.developerstring.nexpay.viewmodel.AptosViewModel
 import com.developerstring.nexpay.viewmodel.SharedViewModel
 
@@ -32,9 +34,11 @@ fun BottomNavGraph(navController: NavHostController, sharedViewModel: SharedView
 
         composable(HomeScreenRoute.toString()) { HomeScreen(sharedViewModel = sharedViewModel, navController = navController) }
         composable(CalenderScreenRoute.toString()) { CalenderScreen(sharedViewModel = sharedViewModel, navController = navController) }
-        composable(ProfileScreenRoute.toString()) { ProfileScreen(sharedViewModel = sharedViewModel, navController = navController) }
+        composable(ProfileScreenRoute.toString()) { ProfileScreen(sharedViewModel = sharedViewModel, navController = navController, aptosViewModel = aptosViewModel) }
         composable(WalletScreenRoute.toString()) { WalletScreen(sharedViewModel = sharedViewModel, navController = navController, aptosViewModel = aptosViewModel) }
         composable(ExploreScreenRoute.toString()) { ExploreScreen(sharedViewModel = sharedViewModel, navController = navController) }
+
+        composable(SwapScreenRoute.toString()) { SwapScreen(sharedViewModel = sharedViewModel, navController = navController, aptosViewModel = aptosViewModel) }
 
     }
 

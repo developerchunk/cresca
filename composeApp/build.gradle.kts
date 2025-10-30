@@ -62,9 +62,27 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.material.icons.extended)
 
-            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+            implementation(libs.kmpalette.core)
+
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
 
             implementation("xyz.mcxross.kaptos:kaptos:0.1.2-beta")
+            implementation("network.chaintech:qr-kit:1.0.3")
+            implementation("io.github.alexzhirkevich:qrose:1.0.1")
+
+            // ktor bundle
+            implementation(libs.bundles.ktor)
+
+            // image loading library
+            implementation(libs.coil.compose.core)
+            implementation(libs.coil.mp)
+            implementation(libs.coil.network.ktor)
+            implementation(libs.coil.compose)
+
+            implementation("io.github.thechance101:chart:Beta-0.0.5")
+
+            // kmp for math for kmp
+            implementation("com.ionspin.kotlin:bignum:0.3.10")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
