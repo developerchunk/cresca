@@ -1,5 +1,7 @@
 package com.developerstring.nexpay.viewmodel
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.developerstring.nexpay.repository.AppLockRepository
@@ -12,6 +14,8 @@ import xyz.mcxross.kaptos.Aptos
 import xyz.mcxross.kaptos.model.*
 import xyz.mcxross.kaptos.model.MoveVector.Companion.string
 import xyz.mcxross.kaptos.util.APTOS_COIN
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import xyz.mcxross.kaptos.account.Account as AptosAccount
 
 
@@ -193,6 +197,50 @@ class AptosViewModel(
         }
     }
 
+    private var _bundleTransaction = MutableStateFlow(
+        BundleTransaction(
+            id = 0,
+            hex = "",
+            gasFees = 0L,
+            success = false,
+            message = "",
+            btcPrice = 0.0,
+            ethPrice = 0.0,
+            solPrice = 0.0,
+            timestamp = 0L,
+            amount = 0.0,
+            leverage = 0,
+            isLong = true,
+            newAmount = ""
+        )
+    )
+
+    var lastID: MutableState<Int> = mutableStateOf(0)
+    suspend fun getLastID() {
+        lastID.value = appLockRepository.getLastId()
+    }
+
+    val bundleTransaction: StateFlow<BundleTransaction> = _bundleTransaction.asStateFlow()
+
+    var btcPrice: MutableState<Double> = mutableStateOf(0.0)
+    var ethPrice: MutableState<Double> = mutableStateOf(0.0)
+    var solPrice: MutableState<Double> = mutableStateOf(0.0)
+
+    var successBundle: MutableState<Boolean> = mutableStateOf(false)
+
+    var listOfBundle: MutableList<BundleTransaction> = mutableListOf()
+
+    var amountBundle: MutableState<Double> = mutableStateOf(0.0)
+
+    var leverage: MutableState<Int> = mutableStateOf(0)
+
+    var isLong: MutableState<Boolean> = mutableStateOf(true)
+
+    var newAmount: MutableState<String> = mutableStateOf("")
+
+    var isAdded: MutableState<Boolean> = mutableStateOf(true)
+
+    @OptIn(ExperimentalTime::class)
     private suspend fun executeOnChain(
         functionName: String,
         typeArgs: TypeArguments?,
@@ -266,6 +314,42 @@ class AptosViewModel(
             _hex.value = executedHash
             _gasFees.value = totalGasFee
 
+            _bundleTransaction.value = BundleTransaction(
+                hex = executedHash,
+                gasFees = totalGasFee,
+                success = true,
+                message = "Transaction successful",
+                timestamp = Clock.System.now().toEpochMilliseconds(),
+                btcPrice = btcPrice.value,
+                ethPrice = ethPrice.value,
+                solPrice =solPrice.value,
+                id = appLockRepository.getLastId(),
+                amount = amountBundle.value,
+                leverage = leverage.value,
+                isLong = isLong.value,
+                newAmount = newAmount.value
+            )
+
+                if (!isAdded.value) {
+                    listOfBundle.add(
+                        BundleTransaction(
+                            hex = executedHash,
+                            gasFees = totalGasFee,
+                            success = true,
+                            message = "Transaction successful",
+                            timestamp = Clock.System.now().toEpochMilliseconds(),
+                            btcPrice = btcPrice.value,
+                            ethPrice = ethPrice.value,
+                            solPrice =solPrice.value,
+                            id = appLockRepository.getLastId(),
+                            amount = amountBundle.value,
+                            leverage = leverage.value,
+                            isLong = isLong.value,
+                            newAmount = newAmount.value
+                        )
+                    )
+                }
+
             println("✅ Executed: $executed")
             println("💰 Gas Used: $gasUsed units")
             println("💵 Gas Unit Price: $gasUnitPrice octas")
@@ -273,9 +357,13 @@ class AptosViewModel(
             println("🔗 Transaction Hash: $executedHash")
             println("📋 Committed Hash: $transactionHash")
             println("✅ Hash Match: ${executedHash == transactionHash}")
+
+            successBundle.value = true
+
             Result.success("Transaction successful: ${committed.expect("Tx failed").hash}")
 
         } catch (e: Exception) {
+            successBundle.value = false
             println(e.message + " <- error on contract run")
             Result.failure(Exception("Transaction failed: ${e.message}"))
         }
@@ -288,11 +376,9 @@ class AptosViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            val module = if (useDefault) {
-                "0x1::coin::transfer"
-            } else {
-                "0x2bc654f1f5009c045ba5486d11252d46724d7e0522db6dbde2ff0fe7e275a1bf::smart_wallet_v2::send_coins"
-            }
+            val module =
+                "0x2bc654f1f5009c045ba5486d11252d46724d7e0522db6dbde2ff0fe7e275a1bf::smart_wallet_v2::init_wallet"
+
 
             val result = executeOnChain(functionName = module, typeArgs = null)
 
@@ -340,9 +426,7 @@ class AptosViewModel(
 
                 val result = executeOnChain(
                     module,
-                    typeArgs = typeArguments {
-                        +TypeTagStruct(APTOS_COIN)
-                    },
+                    typeArgs = null,
                     funArgs = functionArguments {
                         +AccountAddress.fromString(recipientAddress)
                         +U64(amount)
@@ -378,7 +462,44 @@ class AptosViewModel(
 
     // Bucket Contract Execution
 
-    private val contractAddressForBucket = "0x5f971a43ff0c97789f67dc7f75a9fba019695943e0ecebbb81adc851eaa0a36f"
+    private val contractAddressForBucket = "0x33ec41711fe3c92c3f1a010909342e1c2c5de962e50645c8f8c8eda119122d6b"
+
+    fun initializeBundle(leverage_: Int, onResult: (Result<String>) -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            val module = "$contractAddressForBucket::bucket_protocol::init"
+
+            leverage.value = leverage_
+
+            isAdded.value = false
+
+            val result = executeOnChain(
+                functionName = module, typeArgs = null,
+                funArgs = functionArguments {
+                    +U64(leverage_.toULong())
+                })
+
+            result.fold(
+                onSuccess = { message ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = null
+                    )
+                    isAdded.value = true
+                    onResult(Result.success(message))
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = error.message
+                    )
+                    isAdded.value = true
+                    onResult(Result.failure(error))
+                }
+            )
+        }
+    }
 
     // ✅ FIXED: depositCollateral - Remove unnecessary type args
     fun depositCollateral(
@@ -392,11 +513,93 @@ class AptosViewModel(
                 val amountOctas = (amountAPT * 100_000_000).toULong()
                 val module = "$contractAddressForBucket::bucket_protocol::deposit_collateral"
 
+                amountBundle.value = amountAPT
+
+                newAmount.value = amountAPT.toString()
+
                 val result = executeOnChain(
                     module,
                     typeArgs = null, // FIXED: No type args needed
                     funArgs = functionArguments {
                         +U64(amountOctas)
+                    }
+                )
+
+                result.fold(
+                    onSuccess = { message ->
+                        _uiState.value = _uiState.value.copy(isLoading = false, error = null)
+                        refreshBalance()
+                        onResult(Result.success(message))
+                    },
+                    onFailure = { error ->
+                        _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
+                        onResult(Result.failure(error))
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = "Invalid parameters: ${e.message}")
+                onResult(Result.failure(e))
+            }
+        }
+    }
+
+    fun openLong(
+        onResult: (Result<String>) -> Unit
+    ) {
+        viewModelScope.launch {
+            val lastID = appLockRepository.getLastId()
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val module = "$contractAddressForBucket::bucket_protocol::open_long"
+                appLockRepository.setLastId(lastID+1)
+
+                isLong.value = true
+
+                val result = executeOnChain(
+                    module,
+                    typeArgs = null, // FIXED: No type args needed
+                    funArgs = functionArguments {
+                        +U64((lastID+1).toULong())
+                    }
+                )
+
+                result.fold(
+                    onSuccess = { message ->
+                        _uiState.value = _uiState.value.copy(isLoading = false, error = null)
+                        refreshBalance()
+                        onResult(Result.success(message))
+                    },
+                    onFailure = { error ->
+                        _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
+                        onResult(Result.failure(error))
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = "Invalid parameters: ${e.message}")
+                onResult(Result.failure(e))
+            }
+        }
+    }
+
+    fun openShort(
+        bucketId: Int = 0,
+        onResult: (Result<String>) -> Unit
+    ) {
+        viewModelScope.launch {
+            val lastID = appLockRepository.getLastId()
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            try {
+                val module = "$contractAddressForBucket::bucket_protocol::open_short"
+                appLockRepository.setLastId(lastID+1)
+
+                isLong.value = false
+
+                val result = executeOnChain(
+                    module,
+                    typeArgs = null, // FIXED: No type args needed
+                    funArgs = functionArguments {
+                        +U64((lastID+1).toULong())
                     }
                 )
 
@@ -479,7 +682,9 @@ class AptosViewModel(
     }
 
     fun updateOracle(
-        prices: List<Double>,
+        btcPrice_: Double,
+        ethPrice_: Double,
+        solPrice_: Double,
         onResult: (Result<String>) -> Unit
     ) {
         viewModelScope.launch {
@@ -488,12 +693,18 @@ class AptosViewModel(
 
                 val module = "$contractAddressForBucket::bucket_protocol::update_oracle"
 
+                val btcCents = (btcPrice_ * 100).toULong()
+                val ethCents = (ethPrice_ * 100).toULong()
+                val solCents = (solPrice_ * 100).toULong()
+
                 val result = executeOnChain(
                     module,
                     typeArgs = null,
                     funArgs = functionArguments {
                         // Convert prices to U64 values for Move vector<u64> (price in smallest units)
-                        +MoveString(prices.map { it.toString() }.toString())
+                        +U64(btcCents)
+                        +U64(ethCents)
+                        +U64(solCents)
 //                        +string(prices.map { it.toString() })
                     })
 
@@ -527,24 +738,19 @@ class AptosViewModel(
 
     // ✅ FIXED: openPosition - Use U64 instead of U128
     fun openPosition(
-        bucketId: Long,
-        isLong: Boolean,
-        marginAPT: Double,
+        positionId: Int,
         onResult: (Result<String>) -> Unit
     ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val marginOctas = (marginAPT * 100_000_000).toULong()
-                val module = "$contractAddressForBucket::bucket_protocol::open_position"
+                val module = "$contractAddressForBucket::bucket_protocol::close_position"
 
                 val result = executeOnChain(
                     module,
                     typeArgs = null,
                     funArgs = functionArguments {
-                        +U64(bucketId.toULong())
-                        +Bool(isLong)
-                        +U64(marginOctas) // FIXED: Changed from U128 to U64
+                        +U64(positionId.toULong()) // FIXED: Changed from U128 to U64
                     }
                 )
 
@@ -603,6 +809,25 @@ class AptosViewModel(
     }
 
 }
+
+data class BundleTransaction(
+    val id: Int,
+    val hex: String,
+    val gasFees: Long,
+    val success: Boolean,
+    val message: String,
+    val btcPrice: Double,
+    val ethPrice: Double,
+    val solPrice: Double,
+    val timestamp: Long,
+    val btcWeight: Int = 50,
+    val ethWeight: Int = 30,
+    val solWeight: Int = 20,
+    val amount: Double,
+    val leverage: Int,
+    val isLong: Boolean,
+    val newAmount: String,
+)
 
 data class AptosWalletUiState(
     val isConnected: Boolean = false,

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.developerstring.nexpay.data.room_db.model.Transaction
 import com.developerstring.nexpay.data.room_db.model.TransactionStatus
+import com.developerstring.nexpay.viewmodel.AptosViewModel
 import com.developerstring.nexpay.viewmodel.SharedViewModel
 import kotlinx.datetime.*
 import kotlinx.serialization.Serializable
@@ -39,7 +40,11 @@ object ViewAllTransactionRoute
 fun ViewAllTransactionScreen(
     sharedViewModel: SharedViewModel,
     navController: NavController,
+    aptosViewModel: AptosViewModel
 ) {
+
+    val list = aptosViewModel.listOfBundle
+
     var selectedFilter by remember { mutableStateOf("All") }
     var selectedCrypto by remember { mutableStateOf("All") }
 

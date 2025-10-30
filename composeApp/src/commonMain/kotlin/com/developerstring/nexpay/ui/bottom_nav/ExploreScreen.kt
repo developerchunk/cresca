@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -25,6 +26,7 @@ import androidx.navigation.NavController
 import com.developerstring.nexpay.data.model.BundleData
 import com.developerstring.nexpay.data.model.CryptoBundle
 import com.developerstring.nexpay.ui.screens.BundleDetailScreenRoute
+import com.developerstring.nexpay.ui.screens.ViewAllBundlesRoute
 import com.developerstring.nexpay.viewmodel.SharedViewModel
 import kotlinx.serialization.Serializable
 
@@ -45,6 +47,7 @@ fun ExploreScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
+            .padding(top = 50.dp)
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -82,6 +85,15 @@ fun ExploreScreen(
                         navController.navigate(BundleDetailScreenRoute(bundle.id))
                     }
                 )
+            }
+            item {
+                Button(
+                    onClick = {
+                        navController.navigate(ViewAllBundlesRoute) {}
+                    }
+                ) {
+                    Text(text = "View All Bundles")
+                }
             }
             item {
                 Spacer(modifier = Modifier.height(100.dp))

@@ -57,11 +57,11 @@ object AppColors {
         val electricBlueAlpha20 = AppColors.electricBlue.copy(alpha = 0.2f)
 
         // Additional blue variants for splash screen
-        val materialBlueAlpha08 = AppColors.materialBlue.copy(alpha = 0.08f)
-        val materialBlueAlpha06 = AppColors.materialBlue.copy(alpha = 0.06f)
+        val materialBlueAlpha08 = AppColors.materialBlue.copy(alpha = 0.1f)
+        val materialBlueAlpha06 = AppColors.materialBlue.copy(alpha = 0.15f)
         val lightBlueAlpha95 = AppColors.lightBlue.copy(alpha = 0.95f)
-        val mediumBlueAlpha55 = AppColors.mediumBlue.copy(alpha = 0.55f)
-        val mediumBlueAlpha45 = AppColors.mediumBlue.copy(alpha = 0.45f)
+        val mediumBlueAlpha55 = AppColors.mediumBlue.copy(alpha = 0.75f)
+        val mediumBlueAlpha45 = AppColors.mediumBlue.copy(alpha = 0.95f)
 
         // Additional purple variant
         val purpleAlpha30 = Color(0xFF9C27B0).copy(alpha = 0.3f)

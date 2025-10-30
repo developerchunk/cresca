@@ -46,7 +46,8 @@ fun ProfileScreen(
 
     ViewAllTransactionScreen(
         sharedViewModel = sharedViewModel,
-        navController = navController
+        navController = navController,
+        aptosViewModel = aptosViewModel
     )
 
 }

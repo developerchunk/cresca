@@ -49,6 +49,7 @@ fun ExecuteBundleScreen(
 
     var payAmount by remember { mutableStateOf("") }
     var leverage by remember { mutableStateOf(1f) }
+    var isLoading by remember { mutableStateOf(false) }
 
     // Calculate total bundle value
     val totalBundleValue = remember(cryptoCurrencyList, bundle) {
@@ -64,6 +65,10 @@ fun ExecuteBundleScreen(
             (crypto?.current_price ?: 0.0) * (token.percentage / 100.0)
         } ?: emptyList()
     }
+
+    val btc = currencyValues.getOrNull(0) ?: 0.0
+    val eth = currencyValues.getOrNull(1) ?: 0.0
+    val sol = currencyValues.getOrNull(5) ?: 0.0
 
     val payAmountDouble = payAmount.toDoubleOrNull() ?: 0.0
     val positionSize = payAmountDouble * leverage
@@ -167,11 +172,12 @@ fun ExecuteBundleScreen(
                             text = bundle.name,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1A1A2E)
+                            color = Color(0xFF1A1A2E),
                         )
 
                         Box(
                             modifier = Modifier
+                                .width(90.dp)
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(vibrantColor)
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -294,7 +300,7 @@ fun ExecuteBundleScreen(
                 Slider(
                     value = leverage,
                     onValueChange = { leverage = it },
-                    valueRange = 1f..150f,
+                    valueRange = 1f..20f,
                     modifier = Modifier.fillMaxWidth(),
                     colors = SliderDefaults.colors(
                         thumbColor = tradeColor,
@@ -391,45 +397,63 @@ fun ExecuteBundleScreen(
             // Execute Button
             Button(
                 onClick = {
+                    isLoading = true
                     // TODO: Implement trade execution logic
-                    aptosViewModel.depositCollateral(amountAPT = payAmountDouble) {
-                        println("DEPOSIT")
-//                        aptosViewModel.viewDashboardExample()
+                    aptosViewModel.initializeBundle(leverage_ = leverage.toInt()) {
                         println("==========================")
-                        println("START CREATE BUCKET=========================")
-                        aptosViewModel.createBucket(
-                            assets = listOf(
-                                "0xae478ff7d83ed072dbc5e264250e67ef58f57c99d89b447efd8a0a2e8b2be76e",
-                                "0x5e156f1207d0ebfa19a9eeff00d62a282278fb8719f4fab3a586a0a2c0fffbea",
-                                "0xdd89c0e695df0692205912fb69fc290418bed0dbe6e4573d744a6d5e6bab6c13"
-                            ),
-                            weights = listOf(50, 30, 20),
-                            leverage = leverage.roundToInt(),
-                        ) {
+                        println("Started initializeBundle")
+
+                        aptosViewModel.depositCollateral(amountAPT = payAmountDouble) {
+                            println("DEPOSIT")
+//                        aptosViewModel.viewDashboardExample()
+                            println("START CREATE BUCKET=========================")
+//                            aptosViewModel.createBucket(
+//                                assets = listOf(
+//                                    "ae478ff7d83ed072dbc5e264250e67ef58f57c99d89b447efd8a0a2e8b2be76e",
+//                                    "5e156f1207d0ebfa19a9eeff00d62a282278fb8719f4fab3a586a0a2c0fffbea",
+//                                    "dd89c0e695df0692205912fb69fc290418bed0dbe6e4573d744a6d5e6bab6c13"
+//                                ),
+//                                weights = listOf(50, 30, 20),
+//                                leverage = leverage.roundToInt(),
+//                            ) {
                             println("CREATED BUCKET=========================")
                             println("ORACLE Start=========================")
                             aptosViewModel.updateOracle(
-                                prices = currencyValues,
+                                btcPrice_ = btc,
+                                ethPrice_ = eth,
+                                solPrice_ = sol,
                             ) {
                                 println("UPDATED ORACLE===================")
                                 println("OPEN Position start===================")
-                                aptosViewModel.openPosition(
-                                    bucketId = 0,
-                                    isLong = tradeType == "LONG",
-                                    marginAPT = 0.001, // Dummy value for margin in APT
-                                ) {
-                                    println("OPENED POSITION=============")
-//                                    aptosViewModel.viewDashboardExample()
-                                    println("CLOSE Position start===================")
-                                    aptosViewModel.closePosition(
-                                        positionId = 0,
+
+                                if (tradeType == "SHORT") {
+                                    aptosViewModel.openShort(
                                     ) {
-                                        println("CLOSED POSITION================")
-                                        aptosViewModel.refreshBalance()
-//                                        aptosViewModel.viewDashboardExample()
+                                        isLoading = false
+                                        navController.navigate(BundleSuccessScreenRoute)
+
+                                        println("OPENED POSITION=============")
+
+                                    }
+                                } else {
+                                    aptosViewModel.openLong(
+                                    ) {
+                                        isLoading = false
+                                        navController.navigate(BundleSuccessScreenRoute)
+                                        println("OPENED POSITION=============")
+//                                    aptosViewModel.viewDashboardExample()
+                                        println("CLOSE Position start===================")
+//                                    aptosViewModel.closePosition(
+//                                        positionId = 0,
+//                                    ) {
+//                                        println("CLOSED POSITION================")
+//                                        aptosViewModel.refreshBalance()
+////                                        aptosViewModel.viewDashboardExample()
+//                                    }
                                     }
                                 }
-
+//
+//                                }
                             }
                         }
                     }
@@ -444,12 +468,20 @@ fun ExecuteBundleScreen(
                     disabledContainerColor = lightVibrantColor.copy(alpha = 0.3f)
                 )
             ) {
-                Text(
-                    text = "Open ${tradeType} Position",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text(
+                        text = "Execute Trade",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(120.dp))

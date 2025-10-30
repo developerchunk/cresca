@@ -489,7 +489,8 @@ private fun formatDouble(value: Double, decimals: Int = 2): String {
 
     // Build format string manually for multiplatform compatibility
     val intPart = rounded.toLong()
-    val decimalPart = ((rounded - intPart) * multiplier).toLong().toString().padStart(decimals, '0')
+    // Use absolute value for decimal calculation to avoid negative decimal parts
+    val decimalPart = kotlin.math.abs((rounded - intPart) * multiplier).toLong().toString().padStart(decimals, '0')
     return "$intPart.$decimalPart"
 }
 

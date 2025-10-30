@@ -62,6 +62,7 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.material.icons.extended)
 
+            implementation("xyz.mcxross.bcs:bcs:0.1.3")
             implementation(libs.kmpalette.core)
 
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")

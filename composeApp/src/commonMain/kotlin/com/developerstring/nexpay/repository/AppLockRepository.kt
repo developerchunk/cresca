@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -26,6 +27,7 @@ class AppLockRepository(
         private val BIOMETRIC_ENABLED_KEY = booleanPreferencesKey("biometric_enabled")
         private val ACCOUNT_ADDRESS = stringPreferencesKey("aptos_account_address")
         private val HAS_ACCOUNT = booleanPreferencesKey("has_persistent_account")
+        private val LAST_ID = intPreferencesKey("last_id")
 
     }
 
@@ -36,6 +38,21 @@ class AppLockRepository(
             prefs[APP_LOCK_ENABLED_KEY] = true
         }
     }
+
+    // TODO: Fix last id storage
+    suspend fun setLastId(id: Int): Int {
+        encryptedDataStore.edit { prefs ->
+            prefs[LAST_ID] = id
+        }
+        return id
+    }
+
+    suspend fun getLastId(): Int {
+        return encryptedDataStore.data.map { preferences ->
+            preferences[LAST_ID] ?: 0
+        }.first()
+    }
+
 
     suspend fun validatePin(pin: String): Boolean {
         val hashedPin = hashPin(pin)

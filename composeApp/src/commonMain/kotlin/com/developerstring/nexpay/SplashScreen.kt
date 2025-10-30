@@ -87,7 +87,7 @@ fun SplashScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                color = Color.Black
+                color = Color.White
             )
     ) {
         Column(
@@ -163,7 +163,7 @@ private fun AnimatedText() {
         text = "Getting things ready for you!",
         fontSize = 18.sp,
         fontWeight = FontWeight.Medium,
-        color = Color.White.copy(alpha = textAlpha.value)
+        color = Color.Black.copy(alpha = textAlpha.value)
     )
 }
 

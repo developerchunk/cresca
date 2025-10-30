@@ -35,6 +35,10 @@ import com.developerstring.nexpay.viewmodel.SharedViewModel
 import androidx.navigation.toRoute
 import com.developerstring.nexpay.ui.crypto.CurrencyScreen
 import com.developerstring.nexpay.ui.crypto.CurrencyScreenRoute
+import com.developerstring.nexpay.ui.screens.BundleSuccessScreen
+import com.developerstring.nexpay.ui.screens.BundleSuccessScreenRoute
+import com.developerstring.nexpay.ui.screens.ViewAllBundlesRoute
+import com.developerstring.nexpay.ui.screens.ViewAllBundlesScreen
 import com.developerstring.nexpay.ui.transaction.ConfirmationScreen
 import com.developerstring.nexpay.ui.transaction.ConfirmationScreenRoute
 import com.developerstring.nexpay.ui.transaction.QRScannerScreen
@@ -60,11 +64,15 @@ fun NavGraphBuilder.navGraph(navController: NavHostController, sharedViewModel: 
 
         composable<QRScannerScreenRoute> { QRScannerScreen(navController = navController, sharedViewModel = sharedViewModel) }
 
-        composable<ViewAllTransactionRoute> { ViewAllTransactionScreen(sharedViewModel = sharedViewModel, navController = navController) }
+        composable<ViewAllTransactionRoute> { ViewAllTransactionScreen(sharedViewModel = sharedViewModel, navController = navController, aptosViewModel = aptosViewModel) }
 
         composable<CurrencyScreenRoute> { CurrencyScreen(sharedViewModel = sharedViewModel, navController = navController) }
 
         composable<SwapScreenRoute> { SwapScreen(sharedViewModel = sharedViewModel, navController = navController, aptosViewModel = aptosViewModel) }
+
+        composable<BundleSuccessScreenRoute> { BundleSuccessScreen(sharedViewModel = sharedViewModel, navController = navController, aptosViewModel = aptosViewModel) }
+
+        composable<ViewAllBundlesRoute> { ViewAllBundlesScreen(sharedViewModel = sharedViewModel, navController = navController, aptosViewModel = aptosViewModel) }
 
         composable<ConfirmationScreenRoute> { backStackEntry ->
             val route = backStackEntry.toRoute<ConfirmationScreenRoute>()

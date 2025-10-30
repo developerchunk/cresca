@@ -556,7 +556,12 @@ private fun formatDecimal(value: Double, decimals: Int): String {
         else -> 100.0
     }
     val rounded = round(value * multiplier) / multiplier
-    return rounded.toString()
+
+    // Build format string manually for multiplatform compatibility
+    val intPart = rounded.toLong()
+    // Use absolute value for decimal calculation to avoid negative decimal parts
+    val decimalPart = kotlin.math.abs((rounded - intPart) * multiplier).toLong().toString().padStart(decimals, '0')
+    return "$intPart.$decimalPart"
 }
 
 private fun formatLargeNumber(number: Double): String {
