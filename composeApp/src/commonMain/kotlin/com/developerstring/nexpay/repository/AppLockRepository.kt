@@ -109,8 +109,6 @@ AppLockRepository(
         } else {
             val hasExistingAccount = hasStoredAccount()
             if (hasExistingAccount) {
-                // 0x838cc962666ec87131c76954029edd8373c077343c3eb3798e0c9d5521479a56
-                // 0x397a1ce0ddd72e5a09107f52ef50286084442f6b1ac68605fb452656c1a930fb
 
                 val newAccount = Ed25519Account(
                     Ed25519PrivateKey(getWalletAddress()),
