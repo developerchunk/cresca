@@ -670,7 +670,6 @@ fun WalletScreen(
                     .padding(20.dp)
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
-
                 // TODO List of crypto
                 ListCryptoCurrencies(
                     sharedViewModel = sharedViewModel,
