@@ -18,7 +18,8 @@ import xyz.mcxross.kaptos.account.Account as AptosAccount
 
 expect fun hashPin(pin: String): String
 
-class AppLockRepository(
+class
+AppLockRepository(
     private val encryptedDataStore: DataStore<Preferences>
 ) {
     companion object {

@@ -4,7 +4,13 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.developerstring.nexpay.data.currencies.CryptoCurrency
+import com.developerstring.nexpay.data.room_db.dao.BundleTransactionDao
+import com.developerstring.nexpay.data.room_db.model.BundleTransaction
 import com.developerstring.nexpay.repository.AppLockRepository
+import com.developerstring.nexpay.utils.error_handlers.NetworkError
+import com.developerstring.nexpay.utils.error_handlers.onError
+import com.developerstring.nexpay.utils.error_handlers.onSuccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +27,7 @@ import xyz.mcxross.kaptos.account.Account as AptosAccount
 
 class AptosViewModel(
     private val appLockRepository: AppLockRepository,
+    private val bundleTransactionDao: BundleTransactionDao
 ) : ViewModel() {
 
     val aptos = Aptos(AptosConfig(AptosSettings(network = Network.TESTNET)))
@@ -197,6 +204,47 @@ class AptosViewModel(
         }
     }
 
+    private fun createBundleTransaction(
+        hex: String,
+        gasFees: Long,
+        success: Boolean,
+        message: String,
+        btcPrice: Double,
+        ethPrice: Double,
+        solPrice: Double,
+        timestamp: Long,
+        btcWeight: Int = 50,
+        ethWeight: Int = 30,
+        solWeight: Int = 20,
+        amount: String,
+        leverage: Int,
+        isLong: Boolean,
+    ) {
+        val bundleTransaction = BundleTransaction(
+            hex = hex,
+            gasFees = gasFees,
+            success = success,
+            message = message,
+            btcPrice = btcPrice,
+            ethPrice = ethPrice,
+            solPrice = solPrice,
+            timestamp = timestamp,
+            btcWeight = btcWeight,
+            ethWeight = ethWeight,
+            solWeight = solWeight,
+            amount = amount,
+            leverage = leverage,
+            isLong = isLong
+        )
+
+        viewModelScope.launch {
+            bundleTransactionDao.insertBundlesTrans(bundleTransaction)
+        }
+    }
+
+    private val _getBundleTransactions = MutableStateFlow<List<BundleTransaction>>(emptyList())
+    val getBundleTransactions: StateFlow<List<BundleTransaction>> = _getBundleTransactions
+
     private var _bundleTransaction = MutableStateFlow(
         BundleTransaction(
             id = 0,
@@ -208,12 +256,22 @@ class AptosViewModel(
             ethPrice = 0.0,
             solPrice = 0.0,
             timestamp = 0L,
-            amount = 0.0,
+            amount = "",
             leverage = 0,
             isLong = true,
-            newAmount = ""
         )
     )
+
+    fun getAllBundleTransactions() {
+        viewModelScope.launch {
+            try {
+                bundleTransactionDao.getBundlesTrans().collect {
+                    _getBundleTransactions.value = it
+                }
+            } catch (e: Exception) {
+            }
+        }
+    }
 
     var lastID: MutableState<Int> = mutableStateOf(0)
     suspend fun getLastID() {
@@ -230,7 +288,7 @@ class AptosViewModel(
 
     var listOfBundle: MutableList<BundleTransaction> = mutableListOf()
 
-    var amountBundle: MutableState<Double> = mutableStateOf(0.0)
+    var amountBundle: MutableState<String> = mutableStateOf("")
 
     var leverage: MutableState<Int> = mutableStateOf(0)
 
@@ -238,13 +296,12 @@ class AptosViewModel(
 
     var newAmount: MutableState<String> = mutableStateOf("")
 
-    var isAdded: MutableState<Boolean> = mutableStateOf(true)
-
     @OptIn(ExperimentalTime::class)
     private suspend fun executeOnChain(
         functionName: String,
         typeArgs: TypeArguments?,
-        funArgs: FunctionArguments? = null
+        funArgs: FunctionArguments? = null,
+        transactionAmount: String? = null
     ): Result<String> {
         return try {
 
@@ -314,41 +371,36 @@ class AptosViewModel(
             _hex.value = executedHash
             _gasFees.value = totalGasFee
 
-            _bundleTransaction.value = BundleTransaction(
-                hex = executedHash,
-                gasFees = totalGasFee,
-                success = true,
-                message = "Transaction successful",
-                timestamp = Clock.System.now().toEpochMilliseconds(),
-                btcPrice = btcPrice.value,
-                ethPrice = ethPrice.value,
-                solPrice =solPrice.value,
-                id = appLockRepository.getLastId(),
-                amount = amountBundle.value,
-                leverage = leverage.value,
-                isLong = isLong.value,
-                newAmount = newAmount.value
-            )
+            if (transactionAmount!= null) {
+                createBundleTransaction(
+                    hex = executedHash,
+                    gasFees = totalGasFee,
+                    success = true,
+                    message = "Transaction successful",
+                    timestamp = Clock.System.now().toEpochMilliseconds(),
+                    btcPrice = btcPrice.value,
+                    ethPrice = ethPrice.value,
+                    solPrice = solPrice.value,
+                    amount = transactionAmount,
+                    leverage = leverage.value,
+                    isLong = isLong.value,
+                )
 
-                if (!isAdded.value) {
-                    listOfBundle.add(
-                        BundleTransaction(
-                            hex = executedHash,
-                            gasFees = totalGasFee,
-                            success = true,
-                            message = "Transaction successful",
-                            timestamp = Clock.System.now().toEpochMilliseconds(),
-                            btcPrice = btcPrice.value,
-                            ethPrice = ethPrice.value,
-                            solPrice =solPrice.value,
-                            id = appLockRepository.getLastId(),
-                            amount = amountBundle.value,
-                            leverage = leverage.value,
-                            isLong = isLong.value,
-                            newAmount = newAmount.value
-                        )
-                    )
-                }
+                _bundleTransaction.value = BundleTransaction(
+                    hex = executedHash,
+                    gasFees = totalGasFee,
+                    success = true,
+                    message = "Transaction successful",
+                    timestamp = Clock.System.now().toEpochMilliseconds(),
+                    btcPrice = btcPrice.value,
+                    ethPrice = ethPrice.value,
+                    solPrice = solPrice.value,
+                    id = appLockRepository.getLastId(),
+                    amount = transactionAmount,
+                    leverage = leverage.value,
+                    isLong = isLong.value,
+                )
+            }
 
             println("✅ Executed: $executed")
             println("💰 Gas Used: $gasUsed units")
@@ -380,7 +432,7 @@ class AptosViewModel(
                 "0x2bc654f1f5009c045ba5486d11252d46724d7e0522db6dbde2ff0fe7e275a1bf::smart_wallet_v2::init_wallet"
 
 
-            val result = executeOnChain(functionName = module, typeArgs = null)
+            val result = executeOnChain(functionName = module, typeArgs = null, transactionAmount = "0.0")
 
             result.fold(
                 onSuccess = { message ->
@@ -430,7 +482,8 @@ class AptosViewModel(
                     funArgs = functionArguments {
                         +AccountAddress.fromString(recipientAddress)
                         +U64(amount)
-                    })
+                    },
+                )
 
                 result.fold(
                     onSuccess = { message ->
@@ -472,13 +525,12 @@ class AptosViewModel(
 
             leverage.value = leverage_
 
-            isAdded.value = false
-
             val result = executeOnChain(
                 functionName = module, typeArgs = null,
                 funArgs = functionArguments {
                     +U64(leverage_.toULong())
-                })
+                },
+            )
 
             result.fold(
                 onSuccess = { message ->
@@ -486,7 +538,6 @@ class AptosViewModel(
                         isLoading = false,
                         error = null
                     )
-                    isAdded.value = true
                     onResult(Result.success(message))
                 },
                 onFailure = { error ->
@@ -494,7 +545,6 @@ class AptosViewModel(
                         isLoading = false,
                         error = error.message
                     )
-                    isAdded.value = true
                     onResult(Result.failure(error))
                 }
             )
@@ -510,10 +560,11 @@ class AptosViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
+
                 val amountOctas = (amountAPT * 100_000_000).toULong()
                 val module = "$contractAddressForBucket::bucket_protocol::deposit_collateral"
 
-                amountBundle.value = amountAPT
+                amountBundle.value = amountAPT.toString()
 
                 newAmount.value = amountAPT.toString()
 
@@ -522,7 +573,8 @@ class AptosViewModel(
                     typeArgs = null, // FIXED: No type args needed
                     funArgs = functionArguments {
                         +U64(amountOctas)
-                    }
+                    },
+                    transactionAmount = amountAPT.toString()
                 )
 
                 result.fold(
@@ -551,7 +603,7 @@ class AptosViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val module = "$contractAddressForBucket::bucket_protocol::open_long"
-                appLockRepository.setLastId(lastID+1)
+                appLockRepository.setLastId(lastID + 1)
 
                 isLong.value = true
 
@@ -559,8 +611,8 @@ class AptosViewModel(
                     module,
                     typeArgs = null, // FIXED: No type args needed
                     funArgs = functionArguments {
-                        +U64((lastID+1).toULong())
-                    }
+                        +U64((lastID + 1).toULong())
+                    },
                 )
 
                 result.fold(
@@ -591,7 +643,7 @@ class AptosViewModel(
 
             try {
                 val module = "$contractAddressForBucket::bucket_protocol::open_short"
-                appLockRepository.setLastId(lastID+1)
+                appLockRepository.setLastId(lastID + 1)
 
                 isLong.value = false
 
@@ -599,8 +651,8 @@ class AptosViewModel(
                     module,
                     typeArgs = null, // FIXED: No type args needed
                     funArgs = functionArguments {
-                        +U64((lastID+1).toULong())
-                    }
+                        +U64((lastID + 1).toULong())
+                    },
                 )
 
                 result.fold(
@@ -651,7 +703,8 @@ class AptosViewModel(
                         +MoveString(weights.map { it.toString() }.toString())
                         // Convert leverage to U64
                         +U8(leverage.toUByte().toByte())
-                    })
+                    },
+                )
 
                 result.fold(
                     onSuccess = { message ->
@@ -706,7 +759,8 @@ class AptosViewModel(
                         +U64(ethCents)
                         +U64(solCents)
 //                        +string(prices.map { it.toString() })
-                    })
+                    },
+                )
 
                 result.fold(
                     onSuccess = { message ->
@@ -751,7 +805,7 @@ class AptosViewModel(
                     typeArgs = null,
                     funArgs = functionArguments {
                         +U64(positionId.toULong()) // FIXED: Changed from U128 to U64
-                    }
+                    },
                 )
 
                 result.fold(
@@ -787,7 +841,7 @@ class AptosViewModel(
                     typeArgs = null,
                     funArgs = functionArguments {
                         +U64(positionId.toULong())
-                    }
+                    },
                 )
 
                 result.fold(
@@ -809,25 +863,6 @@ class AptosViewModel(
     }
 
 }
-
-data class BundleTransaction(
-    val id: Int,
-    val hex: String,
-    val gasFees: Long,
-    val success: Boolean,
-    val message: String,
-    val btcPrice: Double,
-    val ethPrice: Double,
-    val solPrice: Double,
-    val timestamp: Long,
-    val btcWeight: Int = 50,
-    val ethWeight: Int = 30,
-    val solWeight: Int = 20,
-    val amount: Double,
-    val leverage: Int,
-    val isLong: Boolean,
-    val newAmount: String,
-)
 
 data class AptosWalletUiState(
     val isConnected: Boolean = false,

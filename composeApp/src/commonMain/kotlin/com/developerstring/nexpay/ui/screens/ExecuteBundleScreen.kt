@@ -166,18 +166,21 @@ fun ExecuteBundleScreen(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
                         Text(
                             text = bundle.name,
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF1A1A2E),
+                            maxLines = 2,
+                            modifier = Modifier.weight(1f)
                         )
+
+                        Spacer(modifier = Modifier.width(12.dp))
 
                         Box(
                             modifier = Modifier
-                                .width(90.dp)
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(vibrantColor)
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -300,7 +303,7 @@ fun ExecuteBundleScreen(
                 Slider(
                     value = leverage,
                     onValueChange = { leverage = it },
-                    valueRange = 1f..20f,
+                    valueRange = 1f..150f,
                     modifier = Modifier.fillMaxWidth(),
                     colors = SliderDefaults.colors(
                         thumbColor = tradeColor,

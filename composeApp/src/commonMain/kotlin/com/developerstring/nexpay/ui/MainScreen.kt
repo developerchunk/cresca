@@ -98,6 +98,9 @@ fun MainScreen(
     sharedViewModel: SharedViewModel,
     aptosViewModel: AptosViewModel,
 ) {
+
+    aptosViewModel.getAllBundleTransactions()
+
     val nav = rememberNavController()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState()
     val scope = rememberCoroutineScope()

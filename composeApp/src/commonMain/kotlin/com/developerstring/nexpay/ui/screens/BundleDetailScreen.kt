@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -83,15 +84,18 @@ fun BundleDetailScreen(
         return
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(top = 50.dp)
     ) {
+        // Scrollable content
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(top = 50.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 136.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
@@ -105,7 +109,7 @@ fun BundleDetailScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(lightVibrantColor.copy(alpha = 0.15f))
+                            .background(lightVibrantColor.copy(alpha = 0.22f))
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -152,14 +156,14 @@ fun BundleDetailScreen(
                     lightVibrantColor = lightVibrantColor
                 )
             }
-
-            item {
-                TradingActions(
-                    bundleId = bundleId,
-                    navController = navController
-                )
-            }
         }
+
+        // Fixed trading buttons at bottom
+        FixedTradingActions(
+            bundleId = bundleId,
+            navController = navController,
+            lightVibrantColor = lightVibrantColor
+        )
     }
 }
 
@@ -187,15 +191,18 @@ fun BundleHeaderCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.Top
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
                         text = bundle.name,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A1A2E)
+                        color = Color(0xFF1A1A2E),
+                        maxLines = 3,
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -206,11 +213,15 @@ fun BundleHeaderCard(
                     )
                 }
 
+                Spacer(modifier = Modifier.height(10.dp))
+
                 Box(
                     modifier = Modifier
+                        .width(80.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(vibrantColor)
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = bundle.symbol,
@@ -495,98 +506,114 @@ private fun formatDouble(value: Double, decimals: Int = 2): String {
 }
 
 @Composable
-fun TradingActions(
+fun FixedTradingActions(
     bundleId: Int,
-    navController: NavController
+    navController: NavController,
+    lightVibrantColor: Color
 ) {
-    Column(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        color = Color.White,
+        shadowElevation = 8.dp
     ) {
-        Text(
-            text = "Trade Bundle",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF1A1A2E)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 50.dp, top = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Long Button
-            Button(
-                onClick = {
-                    navController.navigate(ExecuteBundleScreenRoute(bundleId, "LONG"))
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(120.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50)
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                        contentDescription = "Long",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Text(
-                        text = "Long",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
+
+                Icon(
+                    imageVector = Icons.Rounded.Warning,
+                    contentDescription = "Warning",
+                    tint = lightVibrantColor,
+                )
+
+                Spacer(Modifier.width(15.dp))
+
+                Text(
+                    text = "Choose Long to bet on price increase, or Short to bet on price decrease",
+                    fontSize = 12.sp,
+                    color = Color(0xFF1A1A2E).copy(alpha = 0.6f),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
             }
 
-            // Short Button
-            Button(
-                onClick = {
-                    navController.navigate(ExecuteBundleScreenRoute(bundleId, "SHORT"))
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(120.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFE53935)
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                // Long Button
+                Button(
+                    onClick = {
+                        navController.navigate(ExecuteBundleScreenRoute(bundleId, "LONG"))
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4CAF50)
+                    )
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.TrendingDown,
-                        contentDescription = "Short",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                            contentDescription = "Long",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Long",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+
+                // Short Button
+                Button(
+                    onClick = {
+                        navController.navigate(ExecuteBundleScreenRoute(bundleId, "SHORT"))
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE53935)
                     )
-                    Text(
-                        text = "Short",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.TrendingDown,
+                            contentDescription = "Short",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Short",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }
-
-        Text(
-            text = "Choose Long to bet on price increase, or Short to bet on price decrease",
-            fontSize = 13.sp,
-            color = Color(0xFF1A1A2E).copy(alpha = 0.6f),
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
-
-        Spacer(modifier = Modifier.height(100.dp))
     }
 }
+
+
 

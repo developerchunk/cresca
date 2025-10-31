@@ -299,7 +299,8 @@ fun NFCScreen(
                                                 copyToClipboard(walletAddress)
                                             }
                                         ),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
                                 ) {
                                     Text(
                                         text = compressedAddress,

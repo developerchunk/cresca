@@ -37,6 +37,7 @@ fun CryptoCurrencyItem(
     modifier: Modifier = Modifier,
     cryptoCurrency: CryptoCurrency,
     sharedViewModel: SharedViewModel,
+    darkColor: Color,
     onClick: (CryptoCurrency) -> Unit
 ) {
     // SharedViewModel color theme
@@ -118,13 +119,13 @@ fun CryptoCurrencyItem(
                 )
 
                 val isPositive = (cryptoCurrency.price_change_percentage_24h ?: 0.0) >= 0
-                val percentage = cryptoCurrency.price_change_percentage_24h?.formatToTwoDecimalPlaces() ?: "0.00"
+                val percentage = cryptoCurrency.price_change_percentage_24h?: 0.0
 
                 Text(
                     text = "${if (isPositive) "+" else ""}${percentage}%",
                     fontWeight = FontWeight.Medium,
                     fontSize = 13.sp,
-                    color = if (isPositive) Color(0xFFFF6B6B) else Color(0xFF19FF22)
+                    color = darkColor
                 )
             }
         }

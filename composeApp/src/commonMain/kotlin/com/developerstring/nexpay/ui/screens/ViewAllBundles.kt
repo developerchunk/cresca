@@ -21,9 +21,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.developerstring.nexpay.data.room_db.model.BundleTransaction
 import com.developerstring.nexpay.ui.theme.AppColors
 import com.developerstring.nexpay.viewmodel.AptosViewModel
-import com.developerstring.nexpay.viewmodel.BundleTransaction
 import com.developerstring.nexpay.viewmodel.SharedViewModel
 import kotlinx.datetime.*
 import kotlinx.serialization.Serializable
@@ -234,7 +234,7 @@ private fun BundleCard(
                     horizontalAlignment = Alignment.End
                 ) {
                     Text(
-                        text = "$${bundle.newAmount}",
+                        text = "$"+bundle.amount,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
@@ -400,7 +400,7 @@ private fun BundleDetailsBottomSheet(
 
         // Bundle Information
         DetailRow("Bundle ID", "#${bundle.id}")
-        DetailRow("Amount", "$${bundle.newAmount}")
+        DetailRow("Amount", "$${bundle.amount}")
         DetailRow("Trade", if (bundle.isLong) "Long" else "Short")
         DetailRow("Leverage", "${bundle.leverage}x")
         DetailRow("Gas Fees", "${bundle.gasFees / 100000000.0} APT")

@@ -22,7 +22,7 @@ data class Country(
 
 data object Constants {
     const val DATABASE_NAME = "app_database.db"
-    const val DATABASE_VERSION = 1
+    const val DATABASE_VERSION = 2
 
     val listOfImages = listOf(
         Res.drawable.avt_1,

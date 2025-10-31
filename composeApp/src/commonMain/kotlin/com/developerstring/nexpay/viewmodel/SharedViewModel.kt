@@ -35,6 +35,8 @@ import xyz.mcxross.kaptos.model.Network
 import kotlin.toString
 import xyz.mcxross.kaptos.account.Account as AptosAccount
 import com.developerstring.nexpay.data.model.CryptoBundle
+import com.developerstring.nexpay.data.room_db.dao.BundleTransactionDao
+import com.developerstring.nexpay.data.room_db.model.BundleTransaction
 import com.developerstring.nexpay.utils.error_handlers.NetworkError
 import com.developerstring.nexpay.utils.error_handlers.onError
 import com.developerstring.nexpay.utils.error_handlers.onSuccess
@@ -58,7 +60,7 @@ class SharedViewModel (
     private val dataStore: DataStore<Preferences>,
     private val appLockRepository: AppLockRepository,
     private val biometricAuthenticator: BiometricAuthenticator,
-    private val repository: CryptoCurrencyRepository
+    private val repository: CryptoCurrencyRepository,
 ) : ViewModel() {
 
     // App Lock State
@@ -360,7 +362,6 @@ class SharedViewModel (
             accountId = accountId,
             executedAt = executedAt,
         )
-
         viewModelScope.launch {
             transactionDao.insertTransaction(transaction)
         }

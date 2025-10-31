@@ -1,27 +1,38 @@
 package com.developerstring.nexpay.ui.transaction
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.Money
+import androidx.compose.material.icons.rounded.QrCode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.input.KeyboardType
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.developerstring.nexpay.data.room_db.model.TransactionStatus
@@ -77,308 +88,392 @@ fun AddTransactionScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(top = 50.dp)
-    ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = { navController.navigateUp() },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(lightVibrantColor.copy(alpha = 0.15f))
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back",
-                            tint = darkVibrantColor,
-                            modifier = Modifier.size(20.dp).clickable(
-                                onClick = {
-                                    navController.navigateUp()
-                                }
-                            )
-                        )
-                    }
-
-                    Text(
-                        text = "New Transaction",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = darkVibrantColor
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White,
+                        lightVibrantColor.copy(alpha = 0.03f)
                     )
-
-                    Spacer(modifier = Modifier.width(40.dp))
-                }
-            }
-
-            item {
-                // From Wallet (Read-only)
-                CleanInputCard(
-                    title = "From",
-                    titleColor = darkVibrantColor,
-                    content = {
-                        OutlinedTextField(
-                            value = if (currentWalletAddress.length > 20) {
-                                "${currentWalletAddress.take(10)}...${currentWalletAddress.takeLast(10)}"
-                            } else currentWalletAddress,
-                            onValueChange = { },
-                            enabled = false,
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Your wallet address", color = darkVibrantColor.copy(alpha = 0.5f)) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = darkVibrantColor.copy(alpha = 0.7f),
-                                disabledBorderColor = lightVibrantColor.copy(alpha = 0.3f),
-                                disabledPlaceholderColor = darkVibrantColor.copy(alpha = 0.5f),
-                                focusedBorderColor = vibrantColor,
-                                unfocusedBorderColor = lightVibrantColor.copy(alpha = 0.5f)
-                            ),
-                            shape = RoundedCornerShape(16.dp),
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = vectorResource(Res.drawable.rounded_wallet),
-                                    contentDescription = null,
-                                    tint = darkVibrantColor.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        )
-                    }
                 )
-            }
+            )
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Header
+            PhantomHeader(
+                darkVibrantColor = darkVibrantColor,
+                lightVibrantColor = lightVibrantColor,
+                onBackClick = { navController.navigateUp() }
+            )
 
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
             item {
-                // To Wallet
-                CleanInputCard(
-                    title = "To",
-                    titleColor = darkVibrantColor,
-                    content = {
-                        OutlinedTextField(
-                            value = receiverAddress,
-                            onValueChange = { receiverAddress = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Enter recipient address", color = darkVibrantColor.copy(alpha = 0.5f)) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = darkVibrantColor,
-                                unfocusedTextColor = darkVibrantColor,
-                                focusedBorderColor = vibrantColor,
-                                unfocusedBorderColor = lightVibrantColor.copy(alpha = 0.5f),
-                                cursorColor = vibrantColor
-                            ),
-                            shape = RoundedCornerShape(16.dp),
-                            leadingIcon = {
-                                Icon(
-                                    Icons.AutoMirrored.Rounded.Send,
-                                    contentDescription = null,
-                                    tint = darkVibrantColor.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            },
-                            trailingIcon = {
-                                IconButton(
-                                    onClick = { /* TODO: Implement QR scan */ },
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(lightVibrantColor.copy(alpha = 0.2f))
-                                ) {
-                                    Icon(
-                                        Icons.Default.QrCode,
-                                        contentDescription = "Scan QR",
-                                        tint = darkVibrantColor,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
+
+                // From Wallet
+                PhantomInputCard(
+                    lightVibrantColor = lightVibrantColor,
+                    darkVibrantColor = darkVibrantColor
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "From",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = darkVibrantColor,
+                            letterSpacing = 0.5.sp
                         )
-                    }
-                )
-            }
-
-            item {
-                // Amount and Crypto Type
-                CleanInputCard(
-                    title = "Amount",
-                    titleColor = darkVibrantColor,
-                    content = {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(lightVibrantColor.copy(alpha = 0.4f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = vectorResource(Res.drawable.rounded_wallet),
+                                    contentDescription = null,
+                                    tint = darkVibrantColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Text(
+                                text = if (currentWalletAddress.length > 20) {
+                                    "${currentWalletAddress.take(8)}...${currentWalletAddress.takeLast(8)}"
+                                } else currentWalletAddress,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = darkVibrantColor
+                            )
+                        }
+
+                        Spacer(Modifier.height(5.dp))
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "To",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = darkVibrantColor,
+                                letterSpacing = 0.5.sp
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White)
+                            ) {
+                                OutlinedTextField(
+                                    value = receiverAddress,
+                                    onValueChange = { receiverAddress = it },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    placeholder = {
+                                        Text(
+                                            "Enter wallet address",
+                                            color = darkVibrantColor.copy(alpha = 0.4f),
+                                            fontSize = 15.sp
+                                        )
+                                    },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = darkVibrantColor,
+                                        unfocusedTextColor = darkVibrantColor,
+                                        focusedBorderColor = Color.Transparent,
+                                        unfocusedBorderColor = Color.Transparent,
+                                        cursorColor = vibrantColor,
+                                        focusedContainerColor = lightVibrantColor.copy(alpha = 0.05f),
+                                        unfocusedContainerColor = lightVibrantColor.copy(alpha = 0.05f)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp),
+                                    singleLine = false,
+                                    trailingIcon = {
+
+                                        Row {
+                                            IconButton(
+                                                onClick = {
+                                                    navController.navigate(QRScannerScreenRoute)
+                                                },
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .clip(RoundedCornerShape(10.dp))
+                                                    .background(lightVibrantColor.copy(alpha = 0.2f))
+                                            ) {
+                                                Icon(
+                                                    Icons.Rounded.QrCode,
+                                                    contentDescription = "Scan QR",
+                                                    tint = darkVibrantColor,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+
+                                            Spacer(Modifier.width(10.dp))
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                // Amount
+                PhantomInputCard(
+                    lightVibrantColor = lightVibrantColor,
+                    darkVibrantColor = darkVibrantColor
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Amount",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = darkVibrantColor,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White)
+                        ) {
                             OutlinedTextField(
                                 value = amount,
                                 onValueChange = { amount = it },
-                                modifier = Modifier.weight(1f),
-                                placeholder = { Text("0.00", color = darkVibrantColor.copy(alpha = 0.5f)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = {
+                                    Text(
+                                        "0.00",
+                                        color = darkVibrantColor.copy(alpha = 0.4f),
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                },
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = darkVibrantColor
+                                ),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedTextColor = darkVibrantColor,
                                     unfocusedTextColor = darkVibrantColor,
-                                    focusedBorderColor = vibrantColor,
-                                    unfocusedBorderColor = lightVibrantColor.copy(alpha = 0.5f),
-                                    cursorColor = vibrantColor
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent,
+                                    cursorColor = vibrantColor,
+                                    focusedContainerColor = lightVibrantColor.copy(alpha = 0.05f),
+                                    unfocusedContainerColor = lightVibrantColor.copy(alpha = 0.05f)
                                 ),
-                                shape = RoundedCornerShape(16.dp),
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Rounded.Money,
-                                        contentDescription = null,
-                                        tint = darkVibrantColor.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true,
+                                trailingIcon = {
+                                    Row {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(20.dp))
+                                                .background(darkVibrantColor)
+                                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(
+                                                text = "APT",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 12.sp,
+                                                letterSpacing = 0.5.sp
+                                            )
+                                        }
+
+                                        Spacer(Modifier.width(10.dp))
+
+                                    }
                                 }
                             )
-
-                            // APT Chip
-                            Box(
-                                modifier = Modifier
-                                    .height(48.dp)
-                                    .clip(RoundedCornerShape(28.dp))
-                                    .background(darkVibrantColor)
-                                    .padding(horizontal = 20.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "APT",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 14.sp
-                                )
-                            }
                         }
                     }
-                )
+                }
             }
 
             item {
                 // Schedule Toggle
-                CleanInputCard(
-                    title = "Schedule",
-                    titleColor = darkVibrantColor,
-                    content = {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                PhantomInputCard(
+                    lightVibrantColor = lightVibrantColor,
+                    darkVibrantColor = darkVibrantColor
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(
-                                    text = "Schedule for later",
+                                    text = "Schedule Transaction",
                                     color = darkVibrantColor,
-                                    fontSize = 16.sp
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium
                                 )
-                                Switch(
-                                    checked = isScheduled,
-                                    onCheckedChange = { isScheduled = it },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = vibrantColor,
-                                        uncheckedThumbColor = Color.White,
-                                        uncheckedTrackColor = lightVibrantColor.copy(alpha = 0.3f)
-                                    )
+                                Text(
+                                    text = "Send at a later time",
+                                    color = darkVibrantColor,
+                                    fontSize = 12.sp
                                 )
                             }
+                            Switch(
+                                checked = isScheduled,
+                                onCheckedChange = { isScheduled = it },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = vibrantColor,
+                                    uncheckedThumbColor = Color.White,
+                                    uncheckedTrackColor = lightVibrantColor.copy(alpha = 0.3f),
+                                    uncheckedBorderColor = vibrantColor
+                                )
+                            )
+                        }
 
-                            if (isScheduled) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        if (isScheduled) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.White)
+                                        .background(lightVibrantColor.copy(alpha = 0.05f))
+                                        .clickable { showDatePicker = true }
+                                        .padding(16.dp)
                                 ) {
-                                    // Date Picker
-                                    OutlinedTextField(
-                                        value = selectedDate?.toString() ?: "",
-                                        onValueChange = { },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { showDatePicker = true },
-                                        placeholder = { Text("Date", color = darkVibrantColor.copy(alpha = 0.5f)) },
-                                        enabled = false,
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            disabledTextColor = darkVibrantColor,
-                                            disabledBorderColor = lightVibrantColor.copy(alpha = 0.3f),
-                                            disabledPlaceholderColor = darkVibrantColor.copy(alpha = 0.5f)
-                                        ),
-                                        shape = RoundedCornerShape(16.dp),
-                                        trailingIcon = {
-                                            Icon(
-                                                Icons.Default.DateRange,
-                                                contentDescription = "Select Date",
-                                                tint = darkVibrantColor.copy(alpha = 0.6f),
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.DateRange,
+                                            contentDescription = "Date",
+                                            tint = darkVibrantColor,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = selectedDate?.toString() ?: "Select Date",
+                                            color = if (selectedDate != null) darkVibrantColor else darkVibrantColor.copy(
+                                                alpha = 0.6f
+                                            ),
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
 
-                                    // Time Picker
-                                    OutlinedTextField(
-                                        value = selectedTime?.toString() ?: "",
-                                        onValueChange = { },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { showTimePicker = true },
-                                        placeholder = { Text("Time", color = darkVibrantColor.copy(alpha = 0.5f)) },
-                                        enabled = false,
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            disabledTextColor = darkVibrantColor,
-                                            disabledBorderColor = lightVibrantColor.copy(alpha = 0.3f),
-                                            disabledPlaceholderColor = darkVibrantColor.copy(alpha = 0.5f)
-                                        ),
-                                        shape = RoundedCornerShape(16.dp),
-                                        trailingIcon = {
-                                            Icon(
-                                                Icons.Default.AccessTime,
-                                                contentDescription = "Select Time",
-                                                tint = darkVibrantColor.copy(alpha = 0.6f),
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.White)
+                                        .background(lightVibrantColor.copy(alpha = 0.05f))
+                                        .clickable { showTimePicker = true }
+                                        .padding(16.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.AccessTime,
+                                            contentDescription = "Time",
+                                            tint = darkVibrantColor,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = selectedTime?.toString() ?: "Select Time",
+                                            color = if (selectedTime != null) darkVibrantColor else darkVibrantColor.copy(
+                                                alpha = 0.6f
+                                            ),
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                )
+                }
             }
 
             item {
                 // Notes
-                CleanInputCard(
-                    title = "Notes",
-                    titleColor = darkVibrantColor,
-                    content = {
-                        OutlinedTextField(
-                            value = notes,
-                            onValueChange = { notes = it },
+                PhantomInputCard(
+                    lightVibrantColor = lightVibrantColor,
+                    darkVibrantColor = darkVibrantColor
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Note (Optional)",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = darkVibrantColor,
+                            letterSpacing = 0.5.sp
+                        )
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(100.dp),
-                            placeholder = { Text("Add a note (optional)", color = darkVibrantColor.copy(alpha = 0.5f)) },
-                            maxLines = 3,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = darkVibrantColor,
-                                unfocusedTextColor = darkVibrantColor,
-                                focusedBorderColor = vibrantColor,
-                                unfocusedBorderColor = lightVibrantColor.copy(alpha = 0.5f),
-                                cursorColor = vibrantColor
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White)
+                        ) {
+                            OutlinedTextField(
+                                value = notes,
+                                onValueChange = { notes = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 75.dp),
+                                placeholder = {
+                                    Text(
+                                        "Add a note...",
+                                        color = darkVibrantColor,
+                                        fontSize = 15.sp
+                                    )
+                                },
+                                maxLines = 3,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = darkVibrantColor,
+                                    unfocusedTextColor = darkVibrantColor,
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent,
+                                    cursorColor = vibrantColor,
+                                    focusedContainerColor = lightVibrantColor.copy(alpha = 0.05f),
+                                    unfocusedContainerColor = lightVibrantColor.copy(alpha = 0.05f)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
                     }
-                )
+                }
             }
 
             item {
@@ -402,79 +497,55 @@ fun AddTransactionScreen(
                 }
             }
 
-            item {
-                // Submit Button
-                Button(
-                    onClick = {
-                        createTransaction(
-                            sharedViewModel = sharedViewModel,
-                            aptosViewModel = aptosViewModel,
-                            currentWalletAddress = currentWalletAddress,
-                            receiverAddress = receiverAddress,
-                            amount = amount,
-                            notes = notes,
-                            isScheduled = isScheduled,
-                            selectedDate = selectedDate,
-                            selectedTime = selectedTime,
-                            onLoading = { isLoading = it },
-                            onError = { errorMessage = it },
-                            onSuccess = {
-                                navController.navigate(ConfirmationScreenRoute(
-                                    senderAddress = currentWalletAddress,
-                                    recipientAddress = receiverAddress,
-                                    amount = amount,
-                                    isSuccess = true,
-                                    scheduledAt = if (isScheduled && selectedDate != null && selectedTime != null) {
-                                        selectedDate!!.atTime(selectedTime!!).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
-                                    } else null,
-                                    executedAt = Clock.System.now().toEpochMilliseconds(),
-                                    note = notes
-                                ))
-                            }
-                        )
-                    },
-                    enabled = !isLoading && receiverAddress.isNotBlank() && amount.isNotBlank() &&
-                            (!isScheduled || (selectedDate != null && selectedTime != null)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = darkVibrantColor,
-                        contentColor = Color.White,
-                        disabledContainerColor = lightVibrantColor.copy(alpha = 0.3f),
-                        disabledContentColor = darkVibrantColor.copy(alpha = 0.5f)
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    if (isLoading) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
+            }
+        }
+
+        // Floating Swipe-to-Send Button at bottom
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+        ) {
+            SwipeToSendButton(
+            enabled = !isLoading && receiverAddress.isNotBlank() && amount.isNotBlank() &&
+                    (!isScheduled || (selectedDate != null && selectedTime != null)),
+            vibrantColor = vibrantColor,
+            lightVibrantColor = lightVibrantColor,
+            darkVibrantColor = darkVibrantColor,
+            isProcessing = isLoading,
+            onSendComplete = {
+                createTransaction(
+                    sharedViewModel = sharedViewModel,
+                    aptosViewModel = aptosViewModel,
+                    currentWalletAddress = currentWalletAddress,
+                    receiverAddress = receiverAddress,
+                    amount = amount,
+                    notes = notes,
+                    isScheduled = isScheduled,
+                    selectedDate = selectedDate,
+                    selectedTime = selectedTime,
+                    onLoading = { isLoading = it },
+                    onError = { errorMessage = it },
+                    onSuccess = {
+                        isLoading = false
+                        navController.navigate(
+                            ConfirmationScreenRoute(
+                                senderAddress = currentWalletAddress,
+                                recipientAddress = receiverAddress,
+                                amount = amount,
+                                isSuccess = true,
+                                scheduledAt = if (isScheduled && selectedDate != null && selectedTime != null) {
+                                    selectedDate!!.atTime(selectedTime!!).toInstant(TimeZone.currentSystemDefault())
+                                        .toEpochMilliseconds()
+                                } else null,
+                                executedAt = Clock.System.now().toEpochMilliseconds(),
+                                note = notes
                             )
-                            Text(
-                                text = "Creating...",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    } else {
-                        Text(
-                            text = "Send Transaction",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
                         )
                     }
-                }
+                )
             }
-
-            item {
-                Spacer(modifier = Modifier.height(80.dp)) // Bottom padding
-            }
+        )
         }
     }
 
@@ -558,23 +629,221 @@ fun AddTransactionScreen(
 }
 
 @Composable
-private fun CleanInputCard(
-    title: String,
-    titleColor: Color = Color.Black,
+fun PhantomHeader(
+    darkVibrantColor: Color,
+    lightVibrantColor: Color,
+    onBackClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+            .padding(top = 34.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = onBackClick,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(lightVibrantColor.copy(alpha = 0.3f))
+        ) {
+            Icon(
+                Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = "Back",
+                tint = darkVibrantColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Text(
+            text = "Send",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = darkVibrantColor,
+            letterSpacing = (-0.3).sp
+        )
+
+        Spacer(modifier = Modifier.width(40.dp))
+    }
+}
+
+@Composable
+private fun PhantomInputCard(
+    lightVibrantColor: Color,
+    darkVibrantColor: Color,
     content: @Composable () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(lightVibrantColor.copy(alpha = 0.3f))
+            .padding(20.dp)
     ) {
-        Text(
-            text = title,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            color = titleColor
-        )
         content()
     }
+}
+
+@Composable
+private fun SwipeToSendButton(
+    enabled: Boolean,
+    vibrantColor: Color,
+    lightVibrantColor: Color,
+    darkVibrantColor: Color,
+    isProcessing: Boolean,
+    onSendComplete: () -> Unit
+) {
+    var offsetX by remember { mutableStateOf(0f) }
+    var isCompleted by remember { mutableStateOf(false) }
+    var showProgress by remember { mutableStateOf(false) }
+
+    val maxWidth = remember { mutableStateOf(0f) }
+    val buttonSize = 60.dp
+
+    val animatedOffset by animateFloatAsState(
+        targetValue = offsetX,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "offset_animation"
+    )
+
+    // Calculate slide progress (0 to 1)
+    val slideProgress = remember(animatedOffset, maxWidth.value) {
+        if (maxWidth.value > 0) {
+            (animatedOffset / (maxWidth.value * 0.85f)).coerceIn(0f, 1f)
+        } else 0f
+    }
+
+    // Animate track background color based on slide progress
+    val trackBackgroundColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> vibrantColor.copy(alpha = 0.1f)
+            slideProgress > 0.1f -> vibrantColor.copy(alpha = 0.15f + (slideProgress * 0.35f))
+            else -> vibrantColor.copy(alpha = 0.15f)
+        },
+        animationSpec = tween(200),
+        label = "track_bg_color"
+    )
+
+    LaunchedEffect(isCompleted) {
+        if (isCompleted && !isProcessing) {
+            showProgress = true
+            onSendComplete()
+            delay(500)
+            offsetX = 0f
+            isCompleted = false
+            showProgress = false
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .padding(start = 35.dp, end = 35.dp, bottom = 50.dp)
+            .background(Color.White,shape = RoundedCornerShape(100))
+            .background(
+                color = trackBackgroundColor,
+                shape = RoundedCornerShape(100)
+            )
+            .fillMaxWidth()
+            .height(60.dp)
+            .onGloballyPositioned { coordinates ->
+                maxWidth.value = coordinates.size.width.toFloat()
+            }
+    ) {
+        // Text label that fades out
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha((1f - (slideProgress * 1.3f)).coerceIn(0f, 1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Rounded.Send,
+                    contentDescription = null,
+                    tint = if (enabled) {
+                        if (slideProgress > 0.3f) Color.White.copy(alpha = 0.7f - (slideProgress * 0.5f))
+                        else darkVibrantColor.copy(alpha = 0.6f)
+                    } else darkVibrantColor.copy(alpha = 0.4f),
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = if (enabled) "Slide to Send" else "Fill all fields",
+                    color = if (enabled) {
+                        if (slideProgress > 0.3f) Color.White.copy(alpha = 0.7f - (slideProgress * 0.5f))
+                        else darkVibrantColor.copy(alpha = 0.6f)
+                    } else darkVibrantColor.copy(alpha = 0.6f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp
+                )
+            }
+        }
+
+        // Floating sliding button
+        val slidingModifier = if (enabled && !showProgress) {
+            Modifier.pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        val threshold = maxWidth.value - buttonSize.toPx() - 8f
+                        if (offsetX >= threshold) {
+                            isCompleted = true
+                        } else {
+                            offsetX = 0f
+                        }
+                    },
+                    onHorizontalDrag = { _, dragAmount ->
+                        val newOffset = (offsetX + dragAmount).coerceIn(
+                            0f,
+                            maxWidth.value - buttonSize.toPx()
+                        )
+                        offsetX = newOffset
+                    }
+                )
+            }
+        } else {
+            Modifier
+        }
+
+        val buttonBackground = when {
+            showProgress || isProcessing -> vibrantColor
+            enabled -> vibrantColor
+            else -> lightVibrantColor.copy(alpha = 0.25f)
+        }
+
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                .size(buttonSize)
+                .clip(CircleShape)
+                .background(buttonBackground)
+                .then(slidingModifier),
+            contentAlignment = Alignment.Center
+        ) {
+            if (showProgress || isProcessing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    Icons.AutoMirrored.Rounded.Send,
+                    contentDescription = "Send",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+    }
+
 }
 
 @OptIn(ExperimentalTime::class)
@@ -660,7 +929,6 @@ private fun createTransaction(
             )
         }
 
-        onLoading(false)
     } catch (e: Exception) {
         onLoading(false)
         onError(e.message ?: "Failed to create transaction")

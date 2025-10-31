@@ -91,6 +91,9 @@ fun CurrencyScreen(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
+
+            Spacer(Modifier.height(50.dp))
+
             // Top App Bar
             TopAppBar(
                 onBackClick = { navController.popBackStack() },

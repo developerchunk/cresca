@@ -85,7 +85,8 @@ fun NavGraphBuilder.navGraph(navController: NavHostController, sharedViewModel: 
                 scheduledAt = route.scheduledAt,
                 executedAt = route.executedAt,
                 note = route.note,
-                aptosViewModel = aptosViewModel
+                aptosViewModel = aptosViewModel,
+                sharedViewModel = sharedViewModel
             )
         }
 

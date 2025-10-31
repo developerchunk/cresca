@@ -45,8 +45,8 @@ sealed class BottomNavRoute(
 
     object Profile : BottomNavRoute(
         route = ProfileScreenRoute.toString(),
-        title = "Profile",
-        icon = Res.drawable.rounded_account,
+        title = "History",
+        icon = Res.drawable.rounded_history,
     )
 
     object Send : BottomNavRoute(

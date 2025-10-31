@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.RotateLeft
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.Add
@@ -22,6 +23,9 @@ import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.QrCode
+import androidx.compose.material.icons.rounded.QrCodeScanner
+import androidx.compose.material.icons.rounded.Rotate90DegreesCw
+import androidx.compose.material.icons.rounded.RotateLeft
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -328,7 +332,7 @@ fun WalletScreen(
                             .background(Color.White.copy(alpha = 0.1f))
                     ) {
                         Icon(
-                            imageVector = Icons.Default.QrCodeScanner,
+                            imageVector = Icons.Rounded.QrCodeScanner,
                             contentDescription = "QR Scanner",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
@@ -368,13 +372,31 @@ fun WalletScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Text(
-                    "Wallet Balance", color = Color.White,
-                    fontSize = 14.sp,
-                    modifier = Modifier.fillMaxSize(),
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Medium,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Wallet Balance", color = Color.White,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.RotateLeft,
+                        contentDescription = "Copy",
+                        tint = Color.White.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable {
+                                uiState.walletAddress?.let {
+                                    aptosViewModel.refreshBalance()
+                                }
+                            }
+                    )
+                }
 
                 // Error Message Display
                 uiState.error?.let { errorMessage ->
@@ -652,7 +674,8 @@ fun WalletScreen(
                 // TODO List of crypto
                 ListCryptoCurrencies(
                     sharedViewModel = sharedViewModel,
-                    navController = navController
+                    navController = navController,
+                    darkVibrantColor = darkVibrantColor
                 )
                 Spacer(modifier = Modifier.height(100.dp))
             }
@@ -697,7 +720,8 @@ fun WalletScreen(
 @Composable
 fun ListCryptoCurrencies(
     sharedViewModel: SharedViewModel,
-    navController: NavController
+    navController: NavController,
+    darkVibrantColor: Color
 ) {
 
     val data by sharedViewModel.cryptoCurrencyList.collectAsState()
@@ -706,7 +730,7 @@ fun ListCryptoCurrencies(
     }
 
     data.forEach {
-        CryptoCurrencyItem(sharedViewModel = sharedViewModel, cryptoCurrency = it, onClick = { selectedCurrency ->
+        CryptoCurrencyItem(darkColor = darkVibrantColor,sharedViewModel = sharedViewModel, cryptoCurrency = it, onClick = { selectedCurrency ->
             sharedViewModel.emptyMarketChart()
             sharedViewModel.getMarketChart(selectedCurrency.id)
             sharedViewModel.currencyCrypto.value = selectedCurrency

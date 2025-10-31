@@ -160,8 +160,7 @@ fun CalenderComponent(
             .padding(top = 50.dp)
             .fillMaxWidth()
             .padding(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = lightColor.copy(0.1f)),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
     ) {
         Column(
@@ -323,7 +322,7 @@ private fun CalendarGrid(
     today: LocalDate,
     selectedDate: LocalDate?,
     onDateClick: (LocalDate) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val firstDayOfMonth = LocalDate(currentYear, currentMonth, 1)
     val nextMonth = firstDayOfMonth.plus(1, DateTimeUnit.MONTH)

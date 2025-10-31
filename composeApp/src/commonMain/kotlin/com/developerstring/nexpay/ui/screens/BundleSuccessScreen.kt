@@ -25,7 +25,6 @@ import androidx.navigation.NavController
 import com.developerstring.nexpay.data.model.BundleData
 import com.developerstring.nexpay.ui.theme.AppColors
 import com.developerstring.nexpay.viewmodel.AptosViewModel
-import com.developerstring.nexpay.viewmodel.BundleTransaction
 import com.developerstring.nexpay.viewmodel.SharedViewModel
 import kotlinx.serialization.Serializable
 import kotlinx.datetime.Instant
@@ -44,6 +43,10 @@ fun BundleSuccessScreen(
 
     LaunchedEffect(Unit) {aptosViewModel.getLastID()}
     val lastID = aptosViewModel.lastID.value
+
+    val lightVibrantColor by sharedViewModel.lightVibrantColor
+    val vibrantColor by sharedViewModel.vibrantColor
+    val darkVibrantColor by sharedViewModel.darkVibrantColor
 
     val bundleTransaction by aptosViewModel.bundleTransaction.collectAsState()
 
@@ -383,6 +386,31 @@ fun BundleSuccessScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            // Review Swap Button
+            Button(
+                onClick = {
+                    navController.popBackStack().also {
+                        navController.popBackStack().also {
+                            navController.popBackStack()
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = vibrantColor,
+                )
+            ) {
+                Text(
+                    text = "Done",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
         }
     }
 }

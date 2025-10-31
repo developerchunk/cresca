@@ -1,5 +1,7 @@
 package com.developerstring.nexpay.ui.transaction
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,12 +9,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.CallMade
 import androidx.compose.material.icons.filled.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.developerstring.nexpay.data.room_db.model.BundleTransaction
 import com.developerstring.nexpay.data.room_db.model.Transaction
 import com.developerstring.nexpay.data.room_db.model.TransactionStatus
 import com.developerstring.nexpay.viewmodel.AptosViewModel
@@ -42,14 +47,25 @@ fun ViewAllTransactionScreen(
     navController: NavController,
     aptosViewModel: AptosViewModel
 ) {
+    // Get color theme from shared view model
+    val lightVibrantColor by sharedViewModel.lightVibrantColor
+    val vibrantColor by sharedViewModel.vibrantColor
+    val darkVibrantColor by sharedViewModel.darkVibrantColor
 
-    val list = aptosViewModel.listOfBundle
+    // Get bundle transactions
+    aptosViewModel.getAllBundleTransactions()
+    val listOfBundles by aptosViewModel.getBundleTransactions.collectAsState()
 
+    // Get regular transactions
+    val sampleTransactions by sharedViewModel.getAllTransactions().collectAsState(initial = emptyList())
+
+    // Tab state
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("All Transactions", "Bundle Transactions")
+
+    // Filter states
     var selectedFilter by remember { mutableStateOf("All") }
     var selectedCrypto by remember { mutableStateOf("All") }
-
-    // Sample transaction data - replace with actual data from viewModel
-    val sampleTransactions by sharedViewModel.getAllTransactions().collectAsState(initial = emptyList())
 
     val filteredTransactions = remember(selectedFilter, selectedCrypto, sampleTransactions) {
         sampleTransactions.filter { transaction ->
@@ -69,161 +85,269 @@ fun ViewAllTransactionScreen(
         }.sortedByDescending { it.createdAt }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
-            .padding(top = 40.dp)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        darkVibrantColor.copy(alpha = 0.05f),
+                        lightVibrantColor.copy(alpha = 0.02f),
+                        Color.White
+                    )
+                )
+            )
     ) {
-        // Header with back button
-        Surface(
-            color = Color.White,
-            shadowElevation = 1.dp
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 40.dp)
         ) {
-            Row(
+            // Phantom-style Header
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                IconButton(
-                    onClick = { navController.navigateUp() },
-                    modifier = Modifier.size(40.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color(0xFF1A1B23)
-                    )
+                    IconButton(
+                        onClick = { navController.navigateUp() },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                color = lightVibrantColor.copy(alpha = 0.1f),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = vibrantColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    IconButton(
+                        onClick = { /* TODO: Implement search */ },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                color = lightVibrantColor.copy(alpha = 0.1f),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = vibrantColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
+                // Title and Description
                 Text(
-                    text = "All Transactions",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp
+                    text = "Activity",
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 32.sp
                     ),
                     color = Color(0xFF1A1B23)
                 )
 
-                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "View all your transaction history",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 16.sp
+                    ),
+                    color = Color(0xFF6C757D),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
 
-                // Filter/Search icon
-                IconButton(
-                    onClick = { /* TODO: Implement search */ },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = Color(0xFF6C757D)
-                    )
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Floating Tab Layout
+                FloatingTabLayout(
+                    tabs = tabs,
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it },
+                    vibrantColor = vibrantColor,
+                    lightVibrantColor = lightVibrantColor
+                )
+            }
+
+            // Content based on selected tab
+            AnimatedContent(
+                targetState = selectedTab,
+                transitionSpec = {
+                    slideInHorizontally(
+                        initialOffsetX = { if (targetState > initialState) 300 else -300 },
+                        animationSpec = tween(300, easing = EaseInOutCubic)
+                    ) + fadeIn(animationSpec = tween(300)) togetherWith
+                    slideOutHorizontally(
+                        targetOffsetX = { if (targetState > initialState) -300 else 300 },
+                        animationSpec = tween(300, easing = EaseInOutCubic)
+                    ) + fadeOut(animationSpec = tween(300))
+                },
+                label = "tab_content"
+            ) { tabIndex ->
+                when (tabIndex) {
+                    0 -> {
+                        // All Transactions Tab
+                        TransactionList(
+                            transactions = filteredTransactions,
+                            selectedFilter = selectedFilter,
+                            selectedCrypto = selectedCrypto,
+                            onFilterChange = { selectedFilter = it },
+                            onCryptoChange = { selectedCrypto = it },
+                            vibrantColor = vibrantColor,
+                            lightVibrantColor = lightVibrantColor,
+                            darkVibrantColor = darkVibrantColor
+                        )
+                    }
+                    1 -> {
+                        // Bundle Transactions Tab
+                        BundleTransactionList(
+                            bundles = listOfBundles,
+                            vibrantColor = vibrantColor,
+                            lightVibrantColor = lightVibrantColor,
+                            darkVibrantColor = darkVibrantColor
+                        )
+                    }
                 }
             }
         }
+    }
+}
 
-        // Filter chips section
-        Column(
+@Composable
+private fun FloatingTabLayout(
+    tabs: List<String>,
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    vibrantColor: Color,
+    lightVibrantColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        color = lightVibrantColor.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(1.dp, lightVibrantColor.copy(alpha = 0.2f))
+    ) {
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .fillMaxSize()
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Status filters
-            Text(
-                text = "Status",
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp
-                ),
-                color = Color(0xFF6C757D),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            tabs.forEachIndexed { index, tab ->
+                val isSelected = selectedTab == index
+                val animatedWeight by animateFloatAsState(
+                    targetValue = if (isSelected) 1f else 1f,
+                    animationSpec = tween(300, easing = EaseInOutCubic),
+                    label = "tab_weight"
+                )
 
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(listOf("All", "Completed", "Pending", "Failed", "Scheduled")) { status ->
-                    FilterChip(
-                        selected = selectedFilter == status,
-                        onClick = { selectedFilter = status },
-                        label = {
+                Surface(
+                    modifier = Modifier
+                        .weight(animatedWeight)
+                        .fillMaxHeight()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { onTabSelected(index) },
+                    color = if (isSelected) vibrantColor else Color.Transparent,
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        AnimatedContent(
+                            targetState = isSelected,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(200)) togetherWith
+                                fadeOut(animationSpec = tween(200))
+                            },
+                            label = "tab_text"
+                        ) { selected ->
                             Text(
-                                text = status,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 11.sp
-                                )
+                                text = tab,
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 14.sp
+                                ),
+                                color = if (selected) Color.White else vibrantColor,
+                                textAlign = TextAlign.Center
                             )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = Color.Transparent,
-                            selectedContainerColor = Color(0xFF7C3AED).copy(alpha = 0.1f),
-                            labelColor = Color(0xFF6C757D),
-                            selectedLabelColor = Color(0xFF7C3AED)
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            borderColor = Color(0xFFE9ECEF),
-                            selectedBorderColor = Color(0xFF7C3AED).copy(alpha = 0.3f),
-                            borderWidth = 1.dp,
-                            enabled = true,
-                            selected = selectedFilter == status
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Crypto type filters
-            Text(
-                text = "Cryptocurrency",
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp
-                ),
-                color = Color(0xFF6C757D),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(listOf("All", "APT", "ETH", "BTC")) { crypto ->
-                    FilterChip(
-                        selected = selectedCrypto == crypto,
-                        onClick = { selectedCrypto = crypto },
-                        label = {
-                            Text(
-                                text = crypto,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 11.sp
-                                )
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = Color.Transparent,
-                            selectedContainerColor = Color(0xFF06B6D4).copy(alpha = 0.1f),
-                            labelColor = Color(0xFF6C757D),
-                            selectedLabelColor = Color(0xFF06B6D4)
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            borderColor = Color(0xFFE9ECEF),
-                            selectedBorderColor = Color(0xFF06B6D4).copy(alpha = 0.3f),
-                            borderWidth = 1.dp,
-                            enabled = true,
-                            selected = selectedCrypto == crypto
-                        )
-                    )
+                        }
+                    }
                 }
             }
         }
+    }
+}
 
-        // Transactions list
-        if (filteredTransactions.isEmpty()) {
+@Suppress("UNUSED_PARAMETER")
+@Composable
+private fun TransactionList(
+    transactions: List<Transaction>,
+    selectedFilter: String,
+    selectedCrypto: String,
+    onFilterChange: (String) -> Unit,
+    onCryptoChange: (String) -> Unit,
+    vibrantColor: Color,
+    lightVibrantColor: Color,
+    darkVibrantColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        // Filter chips
+        LazyRow(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(listOf("All", "Completed", "Pending", "Failed", "Scheduled")) { status ->
+                FilterChip(
+                    selected = selectedFilter == status,
+                    onClick = { onFilterChange(status) },
+                    label = {
+                        Text(
+                            text = status,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 12.sp
+                            )
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = Color.Transparent,
+                        selectedContainerColor = vibrantColor.copy(alpha = 0.15f),
+                        labelColor = Color(0xFF6C757D),
+                        selectedLabelColor = vibrantColor
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderColor = lightVibrantColor.copy(alpha = 0.3f),
+                        selectedBorderColor = vibrantColor.copy(alpha = 0.4f),
+                        borderWidth = 1.dp,
+                        enabled = true,
+                        selected = selectedFilter == status
+                    )
+                )
+            }
+        }
+
+        if (transactions.isEmpty()) {
             // Empty state
             Column(
                 modifier = Modifier
@@ -232,42 +356,72 @@ fun ViewAllTransactionScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Receipt,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = Color(0xFFCED4DA)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(
+                            color = lightVibrantColor.copy(alpha = 0.1f),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Receipt,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp),
+                        tint = vibrantColor.copy(alpha = 0.6f)
+                    )
+                }
+                Spacer(modifier = Modifier.height(20.dp))
                 Text(
-                    text = "No transactions found",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Medium
+                    text = "No transactions yet",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
                     ),
-                    color = Color(0xFF6C757D),
+                    color = Color(0xFF1A1B23),
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "Try adjusting your filters or make your first transaction",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF9E9E9E),
+                    text = "Your transaction history will appear here",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF6C757D),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(bottom = 120.dp, start = 16.dp, end = 16.dp, top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(filteredTransactions) { transaction ->
-                    TransactionCard(
-                        transaction = transaction,
-                        onClick = {
-                            // TODO: Navigate to transaction details
-                        }
-                    )
+                itemsIndexed(transactions.reversed()) { index, transaction ->
+                    val animationDelay = (index * 50).coerceAtMost(300)
+                    var visible by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(animationDelay.toLong())
+                        visible = true
+                    }
+
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = slideInVertically(
+                            initialOffsetY = { it / 2 },
+                            animationSpec = tween(400, easing = EaseOutCubic)
+                        ) + fadeIn(animationSpec = tween(400))
+                    ) {
+                        TransactionCard(
+                            transaction = transaction,
+                            vibrantColor = vibrantColor,
+                            lightVibrantColor = lightVibrantColor,
+                            darkVibrantColor = darkVibrantColor,
+                            onClick = {
+                                // TODO: Navigate to transaction details
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -275,8 +429,103 @@ fun ViewAllTransactionScreen(
 }
 
 @Composable
+private fun BundleTransactionList(
+    bundles: List<BundleTransaction>,
+    vibrantColor: Color,
+    lightVibrantColor: Color,
+    darkVibrantColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        if (bundles.isEmpty()) {
+            // Empty state
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(
+                            color = lightVibrantColor.copy(alpha = 0.1f),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccountBalanceWallet,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp),
+                        tint = vibrantColor.copy(alpha = 0.6f)
+                    )
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    text = "No bundle trades yet",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    ),
+                    color = Color(0xFF1A1B23),
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Your bundle trading history will appear here",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF6C757D),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 120.dp, start = 16.dp, end = 16.dp, top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                 
+            ) {
+                itemsIndexed(bundles.reversed()) { index, bundle ->
+                    val animationDelay = (index * 50).coerceAtMost(300)
+                    var visible by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(animationDelay.toLong())
+                        visible = true
+                    }
+
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = slideInVertically(
+                            initialOffsetY = { it / 2 },
+                            animationSpec = tween(400, easing = EaseOutCubic)
+                        ) + fadeIn(animationSpec = tween(400))
+                    ) {
+                        BundleCard(
+                            bundle = bundle,
+                            vibrantColor = vibrantColor,
+                            lightVibrantColor = lightVibrantColor,
+                            darkVibrantColor = darkVibrantColor,
+                            onClick = {
+                                // TODO: Navigate to bundle details
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Suppress("UNUSED_PARAMETER")
+@Composable
 private fun TransactionCard(
     transaction: Transaction,
+    vibrantColor: Color,
+    lightVibrantColor: Color,
+    darkVibrantColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -298,16 +547,12 @@ private fun TransactionCard(
             .fillMaxWidth()
             .clickable { onClick() },
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = lightVibrantColor.copy(0.1f)
         ),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp,
-            hoveredElevation = 6.dp
-        ),
         border = BorderStroke(
             width = 1.dp,
-            color = Color(0xFFE9ECEF)
+            color = lightVibrantColor.copy(0.05f)
         )
     ) {
         Column(
@@ -552,3 +797,282 @@ private fun getStatusText(status: TransactionStatus): String {
         TransactionStatus.CANCELLED -> "Cancelled"
     }
 }
+
+@Composable
+private fun BundleCard(
+    bundle: BundleTransaction,
+    vibrantColor: Color,
+    lightVibrantColor: Color,
+    darkVibrantColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bundleDateTime = remember(bundle.timestamp) {
+        Instant.fromEpochMilliseconds(bundle.timestamp)
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+    }
+
+    val totalValue = remember(bundle) {
+        (bundle.btcPrice * bundle.btcWeight / 100.0) +
+        (bundle.ethPrice * bundle.ethWeight / 100.0) +
+        (bundle.solPrice * bundle.solWeight / 100.0)
+    }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        color = lightVibrantColor.copy(0.1f),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, lightVibrantColor.copy(alpha = 0.05f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            // Header with status and bundle ID
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Bundle ID and type
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        if (bundle.success) lightVibrantColor.copy(alpha = 0.3f) else Color(0xFFFFEBEE),
+                                        if (bundle.success) lightVibrantColor.copy(alpha = 0.1f) else Color(0xFFFFCDD2)
+                                    )
+                                ),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (bundle.success) Icons.Default.AccountBalanceWallet else Icons.Default.Error,
+                            contentDescription = null,
+                            tint = if (bundle.success) vibrantColor else Color(0xFFE57373),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column {
+                        Text(
+                            text = "Bundle #${bundle.id}",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            ),
+                            color = Color(0xFF1A1B23)
+                        )
+
+                        Text(
+                            text = "Crypto Bundle Trade",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 12.sp
+                            ),
+                            color = Color(0xFF6C757D),
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
+
+                // Status badge
+                Surface(
+                    color = if (bundle.success) Color(0xFF10B981).copy(alpha = 0.1f) else Color(0xFFEF4444).copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(
+                                    color = if (bundle.success) Color(0xFF10B981) else Color(0xFFEF4444),
+                                    shape = CircleShape
+                                )
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (bundle.success) "Success" else "Failed",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            ),
+                            color = if (bundle.success) Color(0xFF10B981) else Color(0xFFEF4444)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Bundle composition
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // BTC
+                BundleCryptoItem(
+                    symbol = "BTC",
+                    weight = bundle.btcWeight.toDouble(),
+                    price = bundle.btcPrice,
+                    color = Color(0xFFF59E0B)
+                )
+
+                // ETH
+                BundleCryptoItem(
+                    symbol = "ETH",
+                    weight = bundle.ethWeight.toDouble(),
+                    price = bundle.ethPrice,
+                    color = Color(0xFF06B6D4)
+                )
+
+                // SOL
+                BundleCryptoItem(
+                    symbol = "SOL",
+                    weight = bundle.solWeight.toDouble(),
+                    price = bundle.solPrice,
+                    color = Color(0xFF7C3AED)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Total value and timestamp
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Column {
+                    Text(
+                        text = "Total Value",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp
+                        ),
+                        color = Color(0xFF6C757D)
+                    )
+                    Text(
+                        text = bundle.amount,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 24.sp
+                        ),
+                        color = Color(0xFF1A1B23)
+                    )
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = "${bundleDateTime.date.month.number}/${bundleDateTime.date.dayOfMonth}/${bundleDateTime.date.year}",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp
+                        ),
+                        color = Color(0xFF1A1B23)
+                    )
+                    Text(
+                        text = "${bundleDateTime.time.hour.toString().padStart(2, '0')}:${
+                            bundleDateTime.time.minute.toString().padStart(2, '0')
+                        }",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp
+                        ),
+                        color = Color(0xFF6C757D)
+                    )
+                }
+            }
+
+            // Animated gradient line
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                vibrantColor.copy(alpha = 0.8f),
+                                lightVibrantColor.copy(alpha = 0.6f),
+                                darkVibrantColor.copy(alpha = 0.4f),
+                                Color.Transparent
+                            )
+                        ),
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun BundleCryptoItem(
+    symbol: String,
+    weight: Double,
+    price: Double,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        // Crypto icon background
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(
+                    color = color.copy(alpha = 0.15f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = symbol,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 10.sp
+                ),
+                color = color
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Weight percentage
+        Text(
+            text = "${weight.toInt()}%",
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
+            ),
+            color = Color(0xFF1A1B23)
+        )
+
+        // Price
+        Text(
+            text = "$${price.toString().take(6)}",
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 10.sp
+            ),
+            color = Color(0xFF9E9E9E)
+        )
+    }
+}
+
